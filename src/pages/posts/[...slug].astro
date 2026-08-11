@@ -1,0 +1,54 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Masthead from '@/components/Masthead.astro';
+import { getContentCacheKey, getExcerpt, getPostCardImage, getPostPath, getPostTaxonomy, getPublicPosts, slugify } from '@/lib/content';
+import { siteConfig } from '@/site.config';
+import TwikooComments from '@/components/TwikooComments.astro';
+import TableOfContents from '@/components/TableOfContents.astro';
+import Mermaid from '@/components/Mermaid.astro';
+import ImageLightbox from '@/components/ImageLightbox.astro';
+export async function getStaticPaths() {
+  const posts = await getPublicPosts();
+  return posts.map((post, index) => ({
+    params: { slug: getPostPath(post).replace(/^\/posts\//, '').replace(/\/$/, '') },
+    props: { post, newer: posts[index - 1], older: posts[index + 1] },
+    cacheKey: getContentCacheKey('post', [post, posts[index - 1], posts[index + 1]].filter(Boolean))
+  }));
+}
+const { post, newer, older } = Astro.props;
+const { Content, headings } = await render(post);
+const cover = getPostCardImage(post, siteConfig.cards.defaultCovers, siteConfig.site.url);
+const toc = typeof post.data.toc === 'boolean' ? { enabled: post.data.toc, position: 'right' as const } : post.data.toc;
+const taxonomy = getPostTaxonomy(post);
+const tags = taxonomy.tags;
+const date = {
+  year: String(post.data.pubDate.getFullYear()),
+  month: String(post.data.pubDate.getMonth() + 1).padStart(2, '0'),
+  day: String(post.data.pubDate.getDate()).padStart(2, '0')
+};
+const dateText = `${date.year} 年 ${date.month} 月 ${date.day} 日`;
+---
+<BaseLayout title={post.data.title} description={getExcerpt(post)} image={cover} type="article" math={post.data.math} navbarOverlay={Boolean(cover)}>
+  <Fragment slot="masthead"><Masthead article={{ title: post.data.title, date, categories: taxonomy.categories, image: cover, textTone: post.data.textTone }} /></Fragment>
+  <article class:list={['article-shell', 'relative pt-8 pb-14 md:pt-10 md:pb-20', { 'has-toc': toc.enabled, [`toc-${toc.position}`]: toc.enabled }]}>
+    <div class="sr-only" aria-hidden="true">
+      <time data-pagefind-meta="date" datetime={post.data.pubDate.toISOString()}>{dateText}</time>
+      {taxonomy.categories.length > 0 && <span data-pagefind-meta="categories">{taxonomy.categories.join(', ')}</span>}
+      {tags.length > 0 && <span data-pagefind-meta="tags">{tags.join(', ')}</span>}
+      {cover && <span data-pagefind-meta="cover">{cover}</span>}
+    </div>
+    {toc.enabled && <TableOfContents headings={headings} position={toc.position} />}
+    <div class="prose" data-pagefind-body><Content /></div>
+    <ImageLightbox />
+    {tags.length > 0 && <div class="mt-10 flex flex-wrap justify-center gap-2 border-t border-line pt-5 text-sm" aria-label="标签">
+      {tags.map((tag) => <a class="rounded-[3px] bg-[var(--color-post-tag-bg)] px-2.5 py-1 no-underline" href={`/tags/${slugify(tag)}/`}>#{tag}</a>)}
+    </div>}
+    <nav class="mt-10 grid grid-cols-1 overflow-hidden rounded-[4px] border border-line bg-raised sm:grid-cols-2" aria-label="相邻文章" data-pagefind-ignore="all">
+      {newer ? <a class="grid min-h-24 content-center p-4 no-underline sm:border-r sm:border-line" href={getPostPath(newer)}><span class="text-xs text-subtle">下一篇</span><strong class="mt-1 font-sans text-base font-normal">{newer.data.title}</strong></a> : <span class="grid min-h-24 content-center p-4 sm:border-r sm:border-line"><span class="text-xs text-subtle">下一篇</span><strong class="mt-1 font-sans text-base font-normal">没有更多了</strong></span>}
+      {older ? <a class="grid min-h-24 content-center border-t border-line p-4 no-underline sm:border-t-0 sm:text-right" href={getPostPath(older)}><span class="text-xs text-subtle">上一篇</span><strong class="mt-1 font-sans text-base font-normal">{older.data.title}</strong></a> : <span class="grid min-h-24 content-center border-t border-line p-4 sm:border-t-0 sm:text-right"><span class="text-xs text-subtle">上一篇</span><strong class="mt-1 font-sans text-base font-normal">没有更多了</strong></span>}
+    </nav>
+    <TwikooComments enabled={post.data.comments} path={Astro.url.pathname} />
+  </article>
+  <Mermaid enabled={post.data.mermaid} />
+</BaseLayout>

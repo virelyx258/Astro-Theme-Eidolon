@@ -1,0 +1,28 @@
+---
+import type { PostEntry } from '@/lib/content';
+import { getPostCardImage, getPostPath, getPostTaxonomy } from '@/lib/content';
+import { siteConfig } from '@/site.config';
+interface Props { post: PostEntry; }
+const { post } = Astro.props;
+const postPath = getPostPath(post);
+const taxonomy = getPostTaxonomy(post);
+const categories = taxonomy.categories.join(', ');
+const date = [post.data.pubDate.getFullYear(), post.data.pubDate.getMonth() + 1, post.data.pubDate.getDate()]
+  .map((part, index) => index === 0 ? String(part) : String(part).padStart(2, '0'))
+  .join('-');
+const image = getPostCardImage(post, siteConfig.cards.defaultCovers, siteConfig.site.url);
+---
+<article class="py-[0.9375rem] md:py-[0.9375rem]" data-pagefind-ignore="index">
+  <a class="group relative block h-50 overflow-hidden rounded-[0.3125rem] bg-[#444] text-white no-underline shadow-sm transition-[transform,box-shadow] duration-300 ease-in-out hover:[transform:translateY(-4px)_scale(1.05)] hover:text-white hover:shadow-[0_22px_43px_rgb(0_0_0/15%)] max-[21rem]:h-42 md:h-62" href={postPath}>
+    {image && <img class="absolute inset-0 size-full object-cover" src={image} alt="" loading="lazy" />}
+    <span class="absolute inset-0 z-10 bg-black/25" aria-hidden="true"></span>
+    <div class="absolute inset-0 z-20 flex flex-col items-center justify-center px-4 py-4 text-center md:px-6">
+      <h2 class="post-card-title m-0 max-w-[90%] [overflow-wrap:anywhere] font-sans text-[1.5625rem] leading-tight font-normal tracking-[0]" data-pagefind-weight="3">{post.data.title}</h2>
+      <p class="mt-3 mb-0 max-w-[90%] [overflow-wrap:anywhere] text-[0.8125rem] leading-relaxed font-normal text-[#eee] [font-family:Consolas,Menlo,Monaco,'lucida_console','Liberation_Mono','Courier_New','andale_mono',monospaceX,monospace,sans-serif]"><time datetime={post.data.pubDate.toISOString()}>{date}</time>{categories && <><span> · </span><span class="[font-family:var(--mirages-font-ui)]">{categories}</span></>}</p>
+    </div>
+  </a>
+</article>
+
+<style>
+  :global(:root[data-font='serif']) .post-card-title { font-weight: 500; }
+</style>

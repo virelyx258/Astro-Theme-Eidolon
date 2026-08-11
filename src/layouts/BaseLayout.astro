@@ -1,0 +1,60 @@
+---
+import { siteConfig } from '@/site.config';
+import BackToTop from '@/components/BackToTop.astro';
+import Footer from '@/components/Footer.astro';
+import Navbar from '@/components/Navbar.astro';
+import SeoHead from '@/components/SeoHead.astro';
+import TwikooCommentCounts from '@/components/TwikooCommentCounts.astro';
+import TwikooClient from '@/components/TwikooClient.astro';
+import NavigationProgress from '@/components/NavigationProgress.astro';
+import { ClientRouter } from 'astro:transitions';
+import '../styles/global.css';
+
+interface Props { title?: string; description?: string; image?: string; type?: 'website' | 'article'; noindex?: boolean; math?: boolean; navbarOverlay?: boolean; }
+const { title, description, image, type, noindex, math, navbarOverlay = false } = Astro.props;
+const hasMasthead = Astro.slots.has('masthead');
+  const appearanceScript = `(function(){var r=document.documentElement,t='mirages-theme',s='mirages-font-scale',f='mirages-font-family',themes=['auto','light','sunset','dark'],fonts=['serif','sans'],stored=Number(localStorage.getItem(s)),scale=stored>=.8&&stored<=1.5?stored*100:stored>=80&&stored<=150?stored:100,theme=localStorage.getItem(t),font=localStorage.getItem(f);scale=Math.round(scale/5)*5;r.dataset.theme=themes.indexOf(theme)>-1?theme:'${siteConfig.appearance.defaultTheme}';r.dataset.font=fonts.indexOf(font)>-1?font:'sans';r.dataset.platform=/Win/.test(navigator.userAgentData?.platform||navigator.platform)?'windows':'other';r.style.fontSize=scale+'%'})();`;
+  const tabsScript = `document.addEventListener('click',function(event){var button=event.target.closest('[data-shortcode-tab]');if(!button)return;var group=button.closest('[data-shortcode-tabs]');var id=button.dataset.shortcodeTab;group.querySelectorAll('[data-shortcode-tab="'+id+'"]').forEach(function(tab){var active=tab===button;tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;var panel=group.querySelector('#'+tab.getAttribute('aria-controls'));if(panel)panel.hidden=!active;});});`;
+  const collapseScript = `document.querySelectorAll('.shortcode-collapse').forEach(function(details){details.dataset.collapseReady='';details.classList.toggle('is-expanded',details.open);var body=details.querySelector(':scope>.shortcode-body');if(body instanceof HTMLElement&&details.open)body.style.height='auto';});document.addEventListener('click',function(event){var summary=event.target.closest('.shortcode-collapse>summary');if(!summary)return;var details=summary.parentElement;if(!(details instanceof HTMLDetailsElement))return;event.preventDefault();var body=details.querySelector(':scope>.shortcode-body');if(!(body instanceof HTMLElement))return;var expand=!details.classList.contains('is-expanded');details.classList.toggle('is-expanded',expand);if(matchMedia('(prefers-reduced-motion: reduce)').matches){details.open=expand;body.style.height=expand?'auto':'';delete details.dataset.animating;return;}var height=body.getBoundingClientRect().height;details.open=true;body.style.height=height+'px';void body.offsetHeight;details.dataset.animating='true';body.style.height=(expand?body.scrollHeight:0)+'px';});document.addEventListener('transitionend',function(event){var body=event.target;if(!(body instanceof HTMLElement)||!body.classList.contains('shortcode-body')||event.propertyName!=='height')return;var details=body.parentElement;if(!(details instanceof HTMLDetailsElement))return;var expanded=details.classList.contains('is-expanded');details.open=expanded;body.style.height=expanded?'auto':'';delete details.dataset.animating;});`;
+---
+
+<!doctype html>
+<html class="min-h-full" lang={siteConfig.site.locale} data-theme={siteConfig.appearance.defaultTheme} data-font="sans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="theme-color" content={siteConfig.appearance.accentColor} />
+    <link rel="icon" href={siteConfig.site.favicon} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap" />
+    {siteConfig.comments.provider === 'twikoo' && <link rel="stylesheet" href="https://registry.npmmirror.com/twikoo/1.7.15/files/dist/twikoo.css" data-twikoo-styles transition:persist="twikoo-styles" />}
+    <SeoHead title={title} description={description} image={image} type={type} noindex={noindex} />
+    {siteConfig.pjax.enabled && <ClientRouter />}
+    {math && <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.css" />}
+    <script is:inline set:html={appearanceScript}></script>
+  </head>
+  <body
+    class:list={['flex min-h-[100svh] min-w-80 flex-col bg-page pt-0 font-sans text-foreground transition-colors duration-150', { 'md:pt-nav': !hasMasthead }]}
+  >
+    <a class="skip-link" href="#main-content">跳到正文</a>
+    <Navbar overlay={navbarOverlay} />
+    <slot name="masthead" />
+  <main id="main-content" class="min-h-0 flex-1 scroll-mt-0 md:scroll-mt-nav"><slot /></main>
+    <Footer />
+    <BackToTop />
+    <TwikooCommentCounts />
+    {siteConfig.comments.provider === 'twikoo' && <TwikooClient />}
+    {siteConfig.pjax.enabled && <NavigationProgress />}
+    <script is:inline set:html={tabsScript}></script>
+    <script is:inline set:html={collapseScript}></script>
+    <script>
+      import pangu from 'pangu/browser';
+
+      const applyPanguSpacing = () => pangu.spacingPage();
+
+      applyPanguSpacing();
+      document.addEventListener('astro:page-load', applyPanguSpacing);
+    </script>
+  </body>
+</html>

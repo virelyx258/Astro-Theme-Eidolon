@@ -1,0 +1,37 @@
+---
+import { siteConfig } from '@/site.config';
+const enabled = siteConfig.comments.provider === 'twikoo' && Boolean(siteConfig.comments.envId.trim());
+const clientConfig = siteConfig.comments.provider === 'twikoo' && siteConfig.comments.envId.trim() ? {
+  envId: siteConfig.comments.envId,
+  ...(siteConfig.comments.envId.startsWith('http') ? {} : { region: siteConfig.comments.region })
+} : null;
+---
+{enabled && clientConfig && <script is:inline define:vars={{ config: clientConfig }}>
+  (() => {
+    const nodes = [...document.querySelectorAll('[data-twikoo-url]')];
+    if (!nodes.length) return;
+    const start = () => {
+      const urls = [...new Set(nodes.map((node) => node.dataset.twikooUrl).filter(Boolean))];
+      const state = window.__miragesTwikoo ??= {};
+      const load = state.script ??= new Promise((resolve, reject) => {
+        if (window.twikoo) return resolve(window.twikoo);
+        const script = document.createElement('script');
+        script.src = 'https://registry.npmmirror.com/twikoo/1.7.15/files/dist/twikoo.nocss.js';
+        script.async = true;
+        script.onload = () => window.twikoo ? resolve(window.twikoo) : reject(new Error('Twikoo 不可用'));
+        script.onerror = () => reject(new Error('Twikoo 加载失败'));
+        document.head.appendChild(script);
+      });
+      load.then((twikoo) => twikoo.getCommentsCount({ envId: config.envId, region: config.region, urls, includeReply: false }))
+        .then((counts) => (counts ?? []).forEach((item) => {
+          const target = nodes.find((node) => node.dataset.twikooUrl === item.url)?.querySelector('[data-twikoo-count]');
+          if (typeof item.count === 'number' && target) {
+            target.textContent = `${item.count} 条评论`;
+            target.hidden = false;
+          }
+        })).catch(() => undefined);
+    };
+    const idle = window.requestIdleCallback ?? ((callback) => window.setTimeout(callback, 1));
+    idle(start);
+  })();
+</script>}

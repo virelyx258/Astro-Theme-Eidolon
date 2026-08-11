@@ -1,0 +1,34 @@
+---
+import { siteConfig } from '@/site.config';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  type?: 'website' | 'article';
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description = siteConfig.site.description,
+  image,
+  type = 'website',
+  noindex = false
+} = Astro.props;
+const pageTitle = title ? `${title} - ${siteConfig.site.title}` : siteConfig.site.title;
+const canonical = new URL(Astro.url.pathname, siteConfig.site.url);
+const imageUrl = image ? new URL(image, siteConfig.site.url) : undefined;
+---
+
+<title>{pageTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+<meta property="og:type" content={type} />
+<meta property="og:title" content={pageTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:site_name" content={siteConfig.site.title} />
+{imageUrl && <meta property="og:image" content={imageUrl} />}
+<meta name="twitter:card" content={imageUrl ? 'summary_large_image' : 'summary'} />
+{noindex && <meta name="robots" content="noindex, nofollow" />}

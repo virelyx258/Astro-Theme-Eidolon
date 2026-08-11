@@ -1,0 +1,21 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Masthead from '@/components/Masthead.astro';
+import PostList from '@/components/PostList.astro';
+import { deriveTaxonomy, getContentCacheKey, getPublicPosts, getTaxonomyPosts, POSTS_PER_PAGE, slugify } from '@/lib/content';
+import { categoryBanners, resolveTaxonomyBanner } from '@/category-banner.config';
+export async function getStaticPaths() {
+  const posts = await getPublicPosts();
+  return deriveTaxonomy(posts, 'categories').flatMap(({ name }) => {
+    const entries = getTaxonomyPosts(posts, 'categories', slugify(name));
+    const total = Math.ceil(entries.length / POSTS_PER_PAGE);
+      return Array.from({ length: Math.max(0, total - 1) }, (_, index) => { const page = index + 2; const category = slugify(name); return { params: { category, page: String(page) }, props: { name, posts: entries.slice((page - 1) * POSTS_PER_PAGE, page * POSTS_PER_PAGE), page, total }, cacheKey: getContentCacheKey(`category:${category}:${page}`, entries) }; });
+  });
+}
+const { name, posts, page, total } = Astro.props;
+const banner = resolveTaxonomyBanner(categoryBanners, slugify(name), { title: name, subtitle: `归入“${name}”分类的文章。` });
+---
+<BaseLayout title={`${name} - 第 ${page} 页`} navbarOverlay={Boolean(banner.image)}>
+  <Fragment slot="masthead"><Masthead banner={banner} textTone={banner.textTone} /></Fragment>
+  <PostList posts={posts} current={page} total={total} basePath={`/categories/${slugify(name)}`} />
+</BaseLayout>

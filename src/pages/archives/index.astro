@@ -1,0 +1,81 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Masthead from '@/components/Masthead.astro';
+import WritingHeatmap from '@/components/WritingHeatmap.astro';
+import { deriveTaxonomy, getArchiveYears, getPostPath, getPublicPosts, slugify } from '@/lib/content';
+import { siteConfig } from '@/site.config';
+const posts = await getPublicPosts();
+const archives = getArchiveYears(posts);
+const tagLimit = siteConfig.archives.tagLimit;
+const tags = deriveTaxonomy(posts, 'tags')
+  .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name));
+const visibleTags = tagLimit === 0 ? tags : tags.slice(0, Math.max(0, tagLimit));
+---
+<BaseLayout title="归档" description="按日期和主题整理的文章。">
+  <Fragment slot="masthead"><Masthead banner={{ title: '归档', subtitle: '按日期和主题整理的文章。',image: 'https://image.luming.cool/i/2026/06/06/6a23f222a1641.webp', textTone: 'auto' }} /></Fragment>
+  <div class="article-shell archives-shell pt-8 pb-14 md:pt-10 md:pb-20">
+    <WritingHeatmap posts={posts} />
+    <section class="archives-tags" aria-labelledby="tag-cloud-title" data-pagefind-ignore="all">
+      <h2 id="tag-cloud-title">标签云</h2>
+      <div class="tag-cloud">{visibleTags.map((tag) => <a href={`/tags/${slugify(tag.name)}/`}>{tag.name}</a>)}</div>
+    </section>
+    <section class="archives-content" aria-label="文章归档">
+      {[...archives].map(([year, months]) => <section class="archive-year">
+        <h2>{year} 年</h2>
+        {[...months].map(([month, entries]) => <div class="archive-month">
+          <h3>{String(month).padStart(2, '0')} 月</h3>
+          <ol>{entries.map((post) => <li><a class="archive-entry" data-archive-entry data-no-text-link href={getPostPath(post)}><time datetime={post.data.pubDate.toISOString()}>{post.data.pubDate.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }).replaceAll('/', '-')}</time><span class="archive-entry-title">{post.data.title}</span></a></li>)}</ol>
+        </div>)}
+      </section>)}
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .archives-tags { margin-bottom: 3.5rem; }
+  .archives-tags h2,
+  .archive-year > h2,
+  .archive-month h3 { font-weight: 400; }
+  .archives-tags h2 { margin: 0 0 1rem; font-size: 1.375rem; }
+  .tag-cloud { display: flex; flex-wrap: wrap; gap: .625rem 1.25rem; font-size: 1rem; line-height: 1.75; }
+  .tag-cloud a { position: relative; color: var(--color-text); }
+  .tag-cloud a::after { position: absolute; right: 0; bottom: -.12em; left: 0; border-bottom: 1px solid var(--color-accent); content: ''; transform: scaleX(0); transform-origin: left center; transition: transform 180ms ease-out; }
+  .tag-cloud a:is(:hover, :focus-visible) { color: var(--color-accent); }
+  .tag-cloud a:is(:hover, :focus-visible)::after { transform: scaleX(1); }
+  .archive-year { padding: 1.75rem 0; }
+  .archive-year:first-child { padding-top: 0; }
+  .archive-year > h2 { margin: 0 0 1.25rem; color: var(--color-accent); font-size: 1.625rem; }
+  .archive-month { margin-bottom: 1.5rem; }
+  .archive-month h3 { margin: 0 0 .625rem; font-size: 1.1875rem; }
+  .archive-month ol { margin: 0; padding: 0; list-style: none; }
+  .archive-entry {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 1rem;
+    align-items: baseline;
+    padding: .5rem .75rem;
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    transition: background-color var(--transition-fast);
+  }
+
+  .archive-entry:hover,
+  .archive-entry:focus-visible {
+    background-color: var(--color-archive-hover);
+  }
+
+  .archive-entry time {
+    color: var(--color-muted);
+    font-size: .9375rem;
+  }
+
+  @media (max-width: 37.5rem) {
+    .archives-tags { margin-bottom: 2.75rem; }
+    .tag-cloud { gap: .5rem 1rem; font-size: .9375rem; }
+    .archive-year > h2 { font-size: 1.5rem; }
+    .archive-month h3 { font-size: 1.125rem; }
+    .archive-entry { grid-template-columns: 58px minmax(0, 1fr); gap: .75rem; padding-inline: .5rem; font-size: 1rem; }
+  }
+</style>

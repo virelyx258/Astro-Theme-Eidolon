@@ -1,0 +1,131 @@
+<div class="navigation-progress" data-navigation-progress aria-hidden="true" transition:persist="navigation-progress">
+  <span class="navigation-progress__bar"></span>
+</div>
+
+<script>
+  let timer: number | undefined;
+  let completionAnimation: Animation | undefined;
+  let hideAnimation: Animation | undefined;
+
+  const getElements = () => {
+    const root = document.querySelector<HTMLElement>('[data-navigation-progress]');
+    const bar = root?.querySelector<HTMLElement>('.navigation-progress__bar');
+    return { root, bar };
+  };
+
+  const setProgress = (bar: HTMLElement, value: number) => {
+    if (bar) bar.style.transform = `scaleX(${value})`;
+  };
+
+  const start = () => {
+    const { root, bar } = getElements();
+    if (!root || !bar) return;
+    window.clearInterval(timer);
+    completionAnimation?.cancel();
+    hideAnimation?.cancel();
+    root.classList.remove('is-finishing', 'is-hiding');
+    root.classList.add('is-visible');
+    bar.dataset.progress = '0';
+    bar.style.transition = '';
+    setProgress(bar, 0);
+    timer = window.setInterval(() => {
+      const currentElements = getElements();
+      if (!currentElements.bar) return;
+      const currentBar = currentElements.bar;
+      const current = Number.parseFloat(currentBar.dataset.progress ?? '0');
+      const next = current + (0.99 - current) * 0.025;
+      currentBar.dataset.progress = String(next);
+      setProgress(currentBar, next);
+    }, 240);
+  };
+
+  const finish = () => {
+    const { root, bar } = getElements();
+    if (!root || !bar) return;
+    window.clearInterval(timer);
+    completionAnimation?.cancel();
+    hideAnimation?.cancel();
+
+    const current = Number.parseFloat(bar.dataset.progress ?? '0');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const duration = reducedMotion ? 1 : 300;
+    root.classList.add('is-finishing');
+    root.style.transform = 'translateY(0)';
+    bar.style.transition = 'none';
+    setProgress(bar, current);
+    completionAnimation = bar.animate(
+      [{ transform: `scaleX(${current})` }, { transform: 'scaleX(1)' }],
+      { duration, easing: 'cubic-bezier(0.33, 1, 0.68, 1)', fill: 'forwards' }
+    );
+    completionAnimation.onfinish = () => {
+      const currentElements = getElements();
+      if (!currentElements.root || !currentElements.bar || currentElements.bar !== bar) return;
+      bar.dataset.progress = '1';
+      bar.style.transform = 'scaleX(1)';
+      currentElements.root.classList.add('is-hiding');
+      hideAnimation = currentElements.root.animate(
+        [{ transform: 'translateY(0)' }, { transform: 'translateY(-100%)' }],
+        { duration: reducedMotion ? 1 : 300, easing: 'cubic-bezier(0.33, 1, 0.68, 1)', fill: 'forwards' }
+      );
+      hideAnimation.onfinish = () => {
+        const latestElements = getElements();
+        if (!latestElements.root || !latestElements.bar || latestElements.bar !== bar) return;
+        latestElements.root.classList.remove('is-visible', 'is-finishing', 'is-hiding');
+        latestElements.root.style.transform = '';
+        latestElements.bar.dataset.progress = '0';
+        latestElements.bar.style.transition = '';
+        setProgress(latestElements.bar, 0);
+        latestElements.bar.getAnimations().forEach((animation) => animation.cancel());
+        latestElements.root.getAnimations().forEach((animation) => animation.cancel());
+      };
+    };
+  };
+
+  document.addEventListener('astro:before-preparation', start);
+  document.addEventListener('astro:page-load', finish);
+</script>
+
+<style is:global>
+  .navigation-progress {
+    position: fixed;
+    z-index: 999;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 3px;
+    min-height: 3px;
+    max-height: 3px;
+    overflow: hidden;
+    box-sizing: border-box;
+    display: block;
+    pointer-events: none;
+    contain: strict;
+    transform: translateY(-100%);
+    transition: transform 240ms cubic-bezier(0.33, 1, 0.68, 1);
+  }
+
+  .navigation-progress.is-visible { transform: translateY(0); }
+  .navigation-progress.is-hiding { transform: translateY(-100%); }
+
+  .navigation-progress__bar {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 3px;
+    max-height: 3px;
+    background: var(--color-accent);
+    box-shadow: 0 3px 8px rgb(0 0 0 / 35%);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 240ms linear;
+  }
+
+  .navigation-progress.is-finishing .navigation-progress__bar {
+    transition: transform 700ms cubic-bezier(0.33, 1, 0.68, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .navigation-progress,
+    .navigation-progress__bar { transition: none; }
+  }
+</style>

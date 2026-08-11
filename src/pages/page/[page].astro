@@ -1,0 +1,20 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Masthead from '@/components/Masthead.astro';
+import PostList from '@/components/PostList.astro';
+import { getContentCacheKey, getPublicPosts, POSTS_PER_PAGE } from '@/lib/content';
+import { siteConfig } from '@/site.config';
+export async function getStaticPaths() {
+  const posts = await getPublicPosts();
+  const total = Math.ceil(posts.length / POSTS_PER_PAGE);
+  return Array.from({ length: Math.max(0, total - 1) }, (_, index) => {
+    const page = index + 2;
+      return { params: { page: String(page) }, props: { posts: posts.slice((page - 1) * POSTS_PER_PAGE, page * POSTS_PER_PAGE), page, total }, cacheKey: getContentCacheKey(`page:${page}`, posts) };
+  });
+}
+const { posts, page, total } = Astro.props;
+---
+<BaseLayout title={`文章 - 第 ${page} 页`} navbarOverlay={Boolean(siteConfig.banner.image)}>
+  <Fragment slot="masthead"><Masthead /></Fragment>
+  <PostList posts={posts} current={page} total={total} basePath="" />
+</BaseLayout>

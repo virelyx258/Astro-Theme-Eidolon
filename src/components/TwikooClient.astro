@@ -1,0 +1,69 @@
+<script is:inline>
+  (() => {
+    const state = window.__miragesTwikoo ??= {};
+    if (state.clientBound) return;
+    state.clientBound = true;
+
+    const loadScript = () => {
+      if (state.script) return state.script;
+      state.script = new Promise((resolve, reject) => {
+        if (window.twikoo) return resolve(window.twikoo);
+        const sources = [
+          'https://registry.npmmirror.com/twikoo/1.7.15/files/dist/twikoo.nocss.js',
+          'https://cdn.jsdelivr.net/npm/twikoo@1.7.15/dist/twikoo.nocss.js'
+        ];
+        const loadSource = (index) => {
+          if (index >= sources.length) return reject(new Error('Twikoo 加载失败'));
+          const script = document.createElement('script');
+          const timer = window.setTimeout(() => { script.remove(); loadSource(index + 1); }, 8000);
+          script.src = sources[index];
+          script.async = true;
+          script.onload = () => { window.clearTimeout(timer); window.twikoo ? resolve(window.twikoo) : loadSource(index + 1); };
+          script.onerror = () => { window.clearTimeout(timer); loadSource(index + 1); };
+          document.head.appendChild(script);
+        };
+        loadSource(0);
+      });
+      return state.script;
+    };
+
+    const waitForStyles = () => {
+      const link = document.querySelector('link[data-twikoo-styles]');
+      if (!(link instanceof HTMLLinkElement) || link.sheet) return Promise.resolve();
+      return new Promise((resolve) => {
+        link.addEventListener('load', () => resolve(), { once: true });
+        link.addEventListener('error', () => resolve(), { once: true });
+      });
+    };
+
+    const initCurrentComments = () => {
+      const root = document.querySelector('#twikoo-comments');
+      if (!(root instanceof HTMLElement) || root.dataset.twikooBound) return;
+      let config;
+      try {
+        config = JSON.parse(root.dataset.twikooConfig ?? '{}');
+      } catch {
+        return;
+      }
+      root.dataset.twikooBound = 'true';
+      root.dataset.twikooState = 'loading';
+      Promise.all([loadScript(), waitForStyles()]).then(([twikoo]) => {
+        if (!root.isConnected || document.querySelector('#twikoo-comments') !== root) return;
+        return twikoo.init({ ...config, el: '#twikoo-comments' });
+      }).then(() => {
+        if (root.isConnected) root.dataset.twikooState = 'ready';
+      }).catch(() => {
+        if (root.isConnected) {
+          root.dataset.twikooState = 'error';
+          root.setAttribute('data-twikoo-error', 'true');
+        }
+      });
+    };
+
+    initCurrentComments();
+    document.addEventListener('astro:page-load', initCurrentComments);
+    document.addEventListener('astro:before-swap', () => {
+      document.querySelector('#twikoo-comments')?.replaceChildren();
+    });
+  })();
+</script>

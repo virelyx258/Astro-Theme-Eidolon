@@ -1,0 +1,37 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Masthead from '@/components/Masthead.astro';
+import TableOfContents from '@/components/TableOfContents.astro';
+import Mermaid from '@/components/Mermaid.astro';
+import ImageLightbox from '@/components/ImageLightbox.astro';
+import { getContentCacheKey } from '@/lib/content';
+export async function getStaticPaths() {
+  const reservedRoutes = new Set(['archives', 'categories', 'links', 'page', 'posts', 'search', 'tags']);
+  const pages = await getCollection('pages', ({ data }) => !data.draft);
+  return pages.flatMap((page) => {
+    const slug = (page.data.slug ?? page.id).replace(/\\/g, '/').replace(/\.(md|mdx)$/i, '').replace(/^\/+|\/+$/g, '');
+    return !slug || reservedRoutes.has(slug.split('/')[0]) ? [] : [{ params: { slug }, props: { page }, cacheKey: getContentCacheKey('page', [page]) }];
+  });
+}
+const { page } = Astro.props;
+const { Content, headings } = await render(page);
+const toc = typeof page.data.toc === 'boolean' ? { enabled: page.data.toc, position: 'right' as const } : page.data.toc;
+const slug = (page.data.slug ?? page.id).replace(/\\/g, '/').replace(/\.(md|mdx)$/i, '').replace(/^\/+|\/+$/g, '');
+const isAbout = slug === 'about';
+---
+<BaseLayout title={page.data.title} description={page.data.description} image={page.data.hero ?? page.data.cover} math={page.data.math} navbarOverlay={!isAbout && Boolean(page.data.hero ?? page.data.cover)}>
+  <Fragment slot="masthead">
+    <Masthead
+      about={isAbout}
+      textTone={page.data.textTone}
+      banner={{ title: page.data.title, subtitle: page.data.description, image: page.data.hero ?? page.data.cover, textTone: page.data.textTone }}
+    />
+  </Fragment>
+  <article class:list={['article-shell', 'relative pt-8 pb-14 md:pt-10 md:pb-20', { 'has-toc': toc.enabled, 'about-page': isAbout }]}>
+    {toc.enabled && <TableOfContents headings={headings} position={toc.position} />}
+    <div class="prose" data-pagefind-body><Content /></div>
+    <ImageLightbox />
+  </article>
+  <Mermaid enabled={page.data.mermaid} />
+</BaseLayout>

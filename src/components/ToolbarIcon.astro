@@ -1,0 +1,11 @@
+---
+import { Link, Rss, Search, TramFront, Type } from '@lucide/astro';
+import type { ToolbarIcon as ToolbarIconName } from '@/types/config';
+
+interface Props { icon: ToolbarIconName; }
+const { icon } = Astro.props;
+const icons = { link: Link, rss: Rss, search: Search, settings: Type, 'tram-front': TramFront } as const;
+const Icon = icons[icon];
+---
+
+<Icon aria-hidden="true" size="1em" />

@@ -1,0 +1,227 @@
+---
+import type { MarkdownHeading } from 'astro';
+import { ListTree, X } from '@lucide/astro';
+
+interface Props {
+  headings: MarkdownHeading[];
+  position?: 'left' | 'right';
+}
+
+const { headings } = Astro.props;
+const visibleHeadings = headings.filter((heading) => heading.depth >= 2 && heading.depth <= 4);
+---
+
+{visibleHeadings.length > 0 && (
+  <div class="toc" data-toc-root data-pagefind-ignore="all">
+    <button class="toc-toggle" type="button" aria-label="打开文章目录" aria-controls="article-toc" aria-expanded="false" aria-hidden="false" data-toc-toggle>
+      <ListTree class="toc-open-icon" aria-hidden="true" size={18} />
+      <X class="toc-close-icon" aria-hidden="true" size={18} />
+    </button>
+    <div class="toc-backdrop" aria-hidden="true" data-toc-backdrop></div>
+    <aside class="toc-drawer" id="article-toc" aria-label="文章目录" aria-hidden="true" data-toc-drawer>
+      <header class="toc-header">
+        <h2>文章目录</h2>
+      </header>
+      <nav>
+        <ul>
+          {visibleHeadings.map((heading) => (
+            <li class={`depth-${heading.depth}`}><a href={`#${heading.slug}`}>{heading.text}</a></li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
+  </div>
+)}
+
+<style>
+  .toc {
+    --toc-drawer-width: min(280px, calc(100vw - 18px));
+  }
+
+  .toc-toggle {
+    position: fixed;
+    z-index: 43;
+    top: 50%;
+    right: 0;
+    display: grid;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-right: 0;
+    border-radius: 4px 0 0 4px;
+    background: var(--color-surface);
+    color: var(--color-muted);
+    box-shadow: none;
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition: right 220ms ease, color var(--transition-fast), background var(--transition-fast);
+    place-items: center;
+  }
+
+  .toc-close-icon { display: none; }
+
+  .toc-toggle:hover,
+  .toc-toggle[aria-expanded='true'] {
+    color: var(--color-accent-strong);
+  }
+
+  .toc-backdrop {
+    position: fixed;
+    z-index: 41;
+    inset: 0;
+    background: rgb(0 0 0 / 28%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-fast);
+  }
+
+  .toc-drawer {
+    position: fixed;
+    z-index: 42;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--toc-drawer-width);
+    padding: max(18px, env(safe-area-inset-top)) 22px max(18px, env(safe-area-inset-bottom));
+    border-left: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+    box-shadow: none;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 220ms ease;
+  }
+
+  .toc.is-open .toc-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .toc.is-open .toc-drawer {
+    transform: translateX(0);
+  }
+
+  .toc.is-open .toc-toggle {
+    right: var(--toc-drawer-width);
+  }
+
+  .toc.is-open .toc-open-icon { display: none; }
+  .toc.is-open .toc-close-icon { display: block; }
+
+  .toc-header {
+    display: flex;
+    min-height: 42px;
+    align-items: center;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 10px;
+  }
+
+  .toc-header h2 {
+    margin: 0;
+    font-family: var(--reading-font-family);
+    font-size: .9rem;
+    font-weight: 700;
+  }
+
+  .toc ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .toc li {
+    margin: 4px 0;
+    font-family: var(--reading-font-family);
+    font-size: .86rem;
+    line-height: 1.45;
+  }
+
+  .toc li a {
+    display: block;
+    border-left: 2px solid transparent;
+    padding: 7px 8px;
+    color: var(--color-muted);
+    text-decoration: none;
+  }
+
+  .toc li a:hover,
+  .toc li a[aria-current] {
+    border-left-color: var(--color-accent);
+    color: var(--color-accent-strong);
+  }
+
+  .toc li a[aria-current] {
+    background: color-mix(in srgb, var(--color-accent) 9%, transparent);
+    font-weight: 700;
+  }
+
+  .toc .depth-3 { padding-left: 12px; }
+  .toc .depth-4 { padding-left: 24px; font-size: .8rem; }
+
+</style>
+
+<script>
+  const setOpen = (open: boolean, restoreFocus = false) => {
+    const root = document.querySelector<HTMLElement>('[data-toc-root]');
+    const toggle = root?.querySelector<HTMLButtonElement>('[data-toc-toggle]');
+    const drawer = root?.querySelector<HTMLElement>('[data-toc-drawer]');
+    const backdrop = root?.querySelector<HTMLElement>('[data-toc-backdrop]');
+    root?.classList.toggle('is-open', open);
+    toggle?.setAttribute('aria-expanded', String(open));
+    toggle?.setAttribute('aria-label', open ? '关闭文章目录' : '打开文章目录');
+    drawer?.setAttribute('aria-hidden', String(!open));
+    backdrop?.setAttribute('aria-hidden', String(!open));
+    document.body.classList.toggle('toc-drawer-open', open);
+    if (restoreFocus) toggle?.focus();
+  };
+
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const target = event.target;
+    const toggle = target.closest<HTMLButtonElement>('[data-toc-toggle]');
+    const backdrop = target.closest<HTMLElement>('[data-toc-backdrop]');
+    const link = target.closest<HTMLAnchorElement>('[data-toc-drawer] a[href^="#"]');
+
+    if (toggle) {
+      setOpen(toggle.getAttribute('aria-expanded') !== 'true', true);
+    } else if (backdrop) {
+      setOpen(false, true);
+    } else if (link) {
+      setOpen(false);
+    }
+  });
+  document.addEventListener('keydown', (event) => {
+    const toggle = document.querySelector<HTMLButtonElement>('[data-toc-toggle]');
+    if (event.key === 'Escape' && toggle?.getAttribute('aria-expanded') === 'true') setOpen(false, true);
+  });
+
+  const updateCurrent = () => {
+    const root = document.querySelector<HTMLElement>('[data-toc-root]');
+    const links = [...(root?.querySelectorAll<HTMLAnchorElement>('a[href^="#"]') ?? [])];
+    const headingLinks = links.map((link) => ({ link, heading: document.getElementById(decodeURIComponent(link.hash.slice(1))) })).filter((item): item is { link: HTMLAnchorElement; heading: HTMLElement } => Boolean(item.heading));
+    if (!headingLinks.length) return;
+    const current = headingLinks.reduce((active, item) => item.heading.getBoundingClientRect().top <= 112 ? item : active, headingLinks[0]);
+    headingLinks.forEach(({ link }) => {
+      if (link === current.link) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
+  };
+
+  {
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(() => {
+          updateCurrent();
+          ticking = false;
+        });
+      }
+    }, { passive: true });
+    updateCurrent();
+    document.addEventListener('astro:page-load', updateCurrent);
+    document.addEventListener('astro:before-preparation', () => setOpen(false));
+  }
+</script>

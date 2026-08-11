@@ -1,0 +1,262 @@
+---
+import type { PostEntry } from '@/lib/content';
+
+interface Props { posts: PostEntry[]; }
+interface WeekCell { week: number; words: number; level: number; }
+
+const { posts } = Astro.props;
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 3 }, (_, index) => currentYear - 2 + index);
+
+function countWords(source: string): number {
+  const text = source
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`[^`]+`/g, '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/[#{*_~>`|+-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const chineseCharacters = text.match(/[\u3400-\u4dbf\u4e00-\u9fff]/g)?.length ?? 0;
+  const otherWords = text
+    .replace(/[\u3400-\u4dbf\u4e00-\u9fff]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean).length;
+  return chineseCharacters + otherWords;
+}
+
+function getIsoWeek(date: Date): { year: number; week: number } {
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+  const year = utcDate.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(year, 0, 1));
+  const week = Math.ceil(((utcDate.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+  return { year, week };
+}
+
+function getLevel(words: number): number {
+  if (words === 0) return 0;
+  if (words < 1_000) return 1;
+  if (words < 3_000) return 2;
+  if (words < 8_000) return 3;
+  return 4;
+}
+
+const wordsByWeek = new Map<string, number>();
+let totalWords = 0;
+for (const post of posts) {
+  const words = countWords(post.body ?? '');
+  totalWords += words;
+  const { year, week } = getIsoWeek(post.data.pubDate);
+  if (!years.includes(year)) continue;
+  const key = `${year}-${week}`;
+  wordsByWeek.set(key, (wordsByWeek.get(key) ?? 0) + words);
+}
+
+const yearRows = years.map((year) => ({
+  year,
+  weeks: Array.from({ length: 53 }, (_, index): WeekCell => {
+    const week = index + 1;
+    const words = wordsByWeek.get(`${year}-${week}`) ?? 0;
+    return { week, words, level: getLevel(words) };
+  })
+}));
+
+const totalWordsLabel = totalWords >= 10_000
+  ? `${(totalWords / 10_000).toFixed(2)}W`
+  : totalWords.toLocaleString('zh-CN');
+---
+
+<section class="writing-heatmap" aria-labelledby="writing-heatmap-title" data-pagefind-ignore="all">
+  <header>
+    <div class="writing-heading">
+      <h2 id="writing-heatmap-title">写作热力图</h2>
+      <p class="writing-total">自博客建立以来，已输出 <span class="writing-total-value">{totalWordsLabel}</span><span class="writing-total-label">字</span></p>
+    </div>
+    <div class="heatmap-legend" aria-label="写作字数：从少到多">
+      <span>少</span>
+      {[0, 1, 2, 3, 4].map((level) => <i class={`level-${level}`} aria-hidden="true"></i>)}
+      <span>多</span>
+    </div>
+  </header>
+  <div class="heatmap-viewport" data-heatmap-viewport>
+    <div class="heatmap-scroll" aria-label="最近三年每周写作字数热力图" data-heatmap-scroll>
+      <div class="heatmap-grid">
+        {yearRows.map((row) => <div class="heatmap-row">
+          <strong>{row.year}</strong>
+          {row.weeks.map((cell) => <span
+            class={`heatmap-cell level-${cell.level}`}
+            aria-label={`${row.year} 年第 ${cell.week} 周，${cell.words.toLocaleString('zh-CN')} 字`}
+          >
+            <span class="heatmap-tooltip" role="tooltip"><span class="heatmap-tooltip-code">{row.year} W{String(cell.week).padStart(2, '0')} · {cell.words.toLocaleString('zh-CN')}</span><span class="heatmap-tooltip-label">字</span></span>
+          </span>)}
+        </div>)}
+        <div class="week-labels" aria-hidden="true">
+          <span></span>
+          {Array.from({ length: 53 }, (_, index) => <span>{[1, 14, 27, 40, 53].includes(index + 1) ? `W${String(index + 1).padStart(2, '0')}` : ''}</span>)}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  let cleanupHeatmap: (() => void) | undefined;
+
+  const initHeatmap = () => {
+    cleanupHeatmap?.();
+    cleanupHeatmap = undefined;
+
+    const heatmapScroll = document.querySelector<HTMLElement>('[data-heatmap-scroll]');
+    if (!heatmapScroll) return;
+
+    const heatmapViewport = heatmapScroll.closest<HTMLElement>('[data-heatmap-viewport]');
+    const heatmapGrid = heatmapScroll.querySelector<HTMLElement>('.heatmap-grid');
+    const root = document.documentElement;
+    const baseRootFontSize = 16;
+    let baseCellSize = 0;
+    let activeTooltip: { cell: HTMLElement; tooltip: HTMLElement; placeholder: Comment } | undefined;
+
+    const updateTooltipPosition = () => {
+      if (!activeTooltip) return;
+      const { cell, tooltip } = activeTooltip;
+      const cellRect = cell.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const gap = 6;
+      const horizontalPadding = 8;
+      const left = Math.min(
+        Math.max(cellRect.left + cellRect.width / 2, tooltipRect.width / 2 + horizontalPadding),
+        window.innerWidth - tooltipRect.width / 2 - horizontalPadding
+      );
+      const fitsAbove = cellRect.top >= tooltipRect.height + gap;
+      const fitsBelow = cellRect.bottom + tooltipRect.height + gap <= window.innerHeight;
+      const top = fitsAbove || !fitsBelow
+        ? cellRect.top - tooltipRect.height - gap
+        : cellRect.bottom + gap;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${Math.max(horizontalPadding, top)}px`;
+    };
+
+    const closeTooltip = () => {
+      if (!activeTooltip) return;
+      const { tooltip, placeholder } = activeTooltip;
+      tooltip.removeAttribute('data-heatmap-portal');
+      tooltip.removeAttribute('style');
+      placeholder.parentNode?.insertBefore(tooltip, placeholder);
+      placeholder.remove();
+      activeTooltip = undefined;
+    };
+
+    const openTooltip = (cell: HTMLElement) => {
+      closeTooltip();
+      const tooltip = cell.querySelector<HTMLElement>('.heatmap-tooltip');
+      if (!tooltip) return;
+      const placeholder = document.createComment('heatmap-tooltip');
+      tooltip.replaceWith(placeholder);
+      tooltip.setAttribute('data-heatmap-portal', '');
+      document.body.append(tooltip);
+      activeTooltip = { cell, tooltip, placeholder };
+      updateTooltipPosition();
+      requestAnimationFrame(() => tooltip.classList.add('is-visible'));
+    };
+
+    const heatmapCells = [...heatmapScroll.querySelectorAll<HTMLElement>('.heatmap-cell')];
+    const cellListeners = heatmapCells.map((cell) => {
+      const onMouseEnter = () => openTooltip(cell);
+      cell.addEventListener('mouseenter', onMouseEnter);
+      cell.addEventListener('mouseleave', closeTooltip);
+      return { cell, onMouseEnter };
+    });
+    window.addEventListener('resize', updateTooltipPosition);
+    window.addEventListener('scroll', updateTooltipPosition, true);
+
+    const updateHeatmapFades = () => {
+      if (!heatmapViewport || !heatmapGrid) return;
+      const maxScrollLeft = Math.max(0, heatmapGrid.getBoundingClientRect().width - heatmapScroll.clientWidth);
+      heatmapViewport.classList.toggle('can-scroll-left', heatmapScroll.scrollLeft > 1);
+      heatmapViewport.classList.toggle('can-scroll-right', heatmapScroll.scrollLeft < maxScrollLeft - 1);
+    };
+
+    const updateHeatmapOverflow = () => {
+      if (!heatmapGrid) return;
+      const rootFontSize = Number.parseFloat(getComputedStyle(root).fontSize) || baseRootFontSize;
+      const scale = rootFontSize / baseRootFontSize;
+      const availableCellSize = (heatmapScroll.clientWidth - 3.25 * baseRootFontSize) / 53;
+
+      if (scale <= 1.01 || baseCellSize === 0) {
+        baseCellSize = Math.min(12, Math.max(8, availableCellSize));
+      }
+      heatmapGrid.style.setProperty('--heatmap-cell-size', `${baseCellSize * scale}px`);
+      heatmapViewport?.classList.toggle('has-overflow', heatmapGrid.getBoundingClientRect().width > heatmapScroll.clientWidth + 1);
+      updateHeatmapFades();
+    };
+
+    const resizeObserver = new ResizeObserver(updateHeatmapOverflow);
+    const fontScaleObserver = new MutationObserver(updateHeatmapOverflow);
+    resizeObserver.observe(heatmapScroll);
+    fontScaleObserver.observe(root, { attributes: true, attributeFilter: ['style'] });
+    heatmapScroll.addEventListener('scroll', updateHeatmapFades, { passive: true });
+    updateHeatmapOverflow();
+
+    cleanupHeatmap = () => {
+      closeTooltip();
+      cellListeners.forEach(({ cell, onMouseEnter }) => {
+        cell.removeEventListener('mouseenter', onMouseEnter);
+        cell.removeEventListener('mouseleave', closeTooltip);
+      });
+      window.removeEventListener('resize', updateTooltipPosition);
+      window.removeEventListener('scroll', updateTooltipPosition, true);
+      resizeObserver.disconnect();
+      fontScaleObserver.disconnect();
+      heatmapScroll.removeEventListener('scroll', updateHeatmapFades);
+    };
+  };
+
+  document.addEventListener('astro:page-load', initHeatmap);
+  initHeatmap();
+</script>
+
+<style>
+  .writing-heatmap { margin-bottom: 3.5rem; }
+  .writing-heatmap header { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; margin-bottom: 1rem; }
+  .writing-heading { min-width: 0; }
+  .writing-heatmap h2 { margin: 0; font-size: 1.375rem; font-weight: 400; }
+  .writing-total { margin: .25rem 0 0; color: var(--color-muted); font-size: .8125rem; }
+  .writing-total-value { font-family: Consolas, Menlo, Monaco, 'lucida_console', 'Liberation_Mono', 'Courier_New', 'andale_mono', monospaceX, monospace, sans-serif; }
+  .writing-total-label { font-family: var(--reading-font-family); }
+  .heatmap-legend { display: flex; gap: .25rem; align-items: center; padding-top: .25rem; color: var(--color-muted); font-size: .75rem; }
+  .heatmap-legend i { width: .75rem; height: .75rem; }
+  .heatmap-viewport { position: relative; }
+  .heatmap-viewport::before,
+  .heatmap-viewport::after { display: none; position: absolute; z-index: 1; top: 0; bottom: .5rem; width: 1.75rem; content: ''; pointer-events: none; }
+  .heatmap-viewport::before { left: 0; background: linear-gradient(90deg, var(--color-bg) 15%, transparent); }
+  .heatmap-viewport::after { right: 0; background: linear-gradient(90deg, transparent, var(--color-bg) 85%); }
+  .heatmap-viewport.has-overflow.can-scroll-left::before,
+  .heatmap-viewport.has-overflow.can-scroll-right::after { display: block; }
+  .heatmap-scroll { overflow-x: hidden; padding: .125rem 0 .5rem; container-type: inline-size; scrollbar-width: thin; }
+  .heatmap-viewport.has-overflow .heatmap-scroll { overflow-x: auto; }
+  .heatmap-grid { --heatmap-label-width: 3.25rem; --heatmap-cell-size: clamp(8px, .75rem, 18px); display: grid; width: max-content; gap: 4px; }
+  .heatmap-row,
+  .week-labels { display: grid; grid-template-columns: var(--heatmap-label-width) repeat(53, var(--heatmap-cell-size)); column-gap: 0; row-gap: 2px; align-items: center; }
+  .heatmap-row strong { color: var(--color-text); font-family: Consolas, Menlo, Monaco, 'lucida_console', 'Liberation_Mono', 'Courier_New', 'andale_mono', monospaceX, monospace, sans-serif; font-size: .8125rem; }
+  .heatmap-cell { position: relative; display: block; width: var(--heatmap-cell-size); height: var(--heatmap-cell-size); }
+  .heatmap-tooltip { position: absolute; bottom: calc(100% + .375rem); left: 50%; z-index: 10; display: inline-block; padding: .3rem .5rem; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); box-shadow: var(--shadow-soft); font-size: .75rem; line-height: 1.2; white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-50%, .25rem); transition: opacity 160ms ease, transform 160ms ease; }
+  .heatmap-cell:hover .heatmap-tooltip { opacity: 1; transform: translate(-50%, 0); }
+  .heatmap-tooltip[data-heatmap-portal] { position: fixed; top: 0; left: 0; z-index: 1000; bottom: auto; transform: translateX(-50%); opacity: 0; }
+  .heatmap-tooltip[data-heatmap-portal].is-visible { opacity: 1; }
+  .heatmap-tooltip-code { font-family: Consolas, Menlo, Monaco, 'lucida_console', 'Liberation_Mono', 'Courier_New', 'andale_mono', monospaceX, monospace, sans-serif; }
+  .heatmap-tooltip-label { font-family: var(--reading-font-family); }
+  .week-labels span { color: var(--color-muted); font-family: Consolas, Menlo, Monaco, 'lucida_console', 'Liberation_Mono', 'Courier_New', 'andale_mono', monospaceX, monospace, sans-serif; font-size: .625rem; text-align: center; white-space: nowrap; }
+  .level-0 { background: var(--heatmap-0); }
+  .level-1 { background: var(--heatmap-1); }
+  .level-2 { background: var(--heatmap-2); }
+  .level-3 { background: var(--heatmap-3); }
+  .level-4 { background: var(--heatmap-4); }
+
+  @media (max-width: 37.5rem) {
+    .writing-heatmap { display: none; }
+  }
+</style>

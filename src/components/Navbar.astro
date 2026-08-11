@@ -1,0 +1,189 @@
+---
+import { Check, ChevronDown } from '@lucide/astro';
+import { siteConfig } from '@/site.config';
+import { deriveTaxonomy, getPublicPosts, slugify } from '@/lib/content';
+import ThemeSwitcher from './ThemeSwitcher.astro';
+import Search from './Search.astro';
+import ToolbarIcon from './ToolbarIcon.astro';
+
+const pageItems = siteConfig.navigation.filter((item) => item.href !== '/');
+const categories = deriveTaxonomy(await getPublicPosts(), 'categories');
+const toolbarItems = siteConfig.toolbarItems.filter((item) => item.type !== 'search' || siteConfig.search.provider === 'pagefind');
+const sidebarToolbarItems = toolbarItems.filter((item) => item.type !== 'search');
+const hasSidebarSearch = siteConfig.search.provider === 'pagefind';
+
+interface Props { overlay?: boolean; }
+const { overlay = false } = Astro.props;
+---
+
+<header class:list={['fixed inset-x-0 top-0 z-40 hidden h-[4rem] border-b border-line/60 bg-nav text-foreground shadow-[0_2px_10px_rgb(0_0_0/8%)] backdrop-blur-md md:flex', { 'navbar-over-banner': overlay }]} data-desktop-navbar data-pagefind-ignore="all">
+  <div class="mx-auto flex h-full min-w-0 w-[calc(100%-2.5rem)] max-w-[1170px] items-center gap-[1.75rem]">
+    <a class="shrink-0 text-[1.25rem] font-bold text-current no-underline hover:text-mirages-accent" href="/" aria-label={`${siteConfig.site.title} 首页`}>{siteConfig.site.title}</a>
+     <nav class="flex min-w-0 items-center gap-[1.5rem]" aria-label="主导航">
+      <details class="group relative" data-category-menu>
+        <summary class="flex cursor-pointer list-none items-center gap-1 text-[0.9375rem] text-current/80 hover:text-mirages-accent [&::-webkit-details-marker]:hidden">
+          <span>分类</span><ChevronDown class="transition-transform duration-150 group-open:rotate-180" aria-hidden="true" size="1em" />
+        </summary>
+        <div class="absolute top-[calc(100%+20px)] left-0 z-50 min-w-44 border border-line bg-page py-1 text-foreground shadow-mirages">
+          {categories.length > 0 ? categories.map((category) => (
+            <a class="flex items-center justify-between gap-5 px-3 py-2 text-sm no-underline hover:bg-raised" href={`/categories/${slugify(category.name)}/`}>
+              <span>{category.name}</span><span class="text-xs text-subtle">{category.count}</span>
+            </a>
+          )) : <span class="block px-3 py-2 text-sm text-subtle">暂无分类</span>}
+        </div>
+      </details>
+       {pageItems.map((item) => <a class="text-[0.9375rem] text-current/80 no-underline hover:text-mirages-accent" href={item.href} target={item.external ? '_blank' : undefined} rel={item.external ? 'noreferrer' : undefined}>{item.label}</a>)}
+    </nav>
+     <div class="ml-auto flex shrink-0 items-center" data-navbar-tools>
+      {toolbarItems.map((item) => (
+         <div class="relative flex items-center" data-toolbar-item={item.type} data-toolbar-name={item.name}>
+          {item.type === 'search' && <Search />}
+          {item.type === 'settings' && <ThemeSwitcher />}
+           {item.type === 'link' && <a class="grid size-[2.5rem] shrink-0 place-items-center text-current/80 no-underline hover:bg-current/10 hover:text-current" href={item.href} target={item.external ? '_blank' : undefined} rel={item.external ? 'noreferrer' : undefined} aria-label={item.name} title={item.name}><ToolbarIcon icon={item.icon} /><span class="sr-only">{item.name}</span></a>}
+           {item.type === 'rss' && <button class="relative grid size-[2.5rem] shrink-0 cursor-pointer place-items-center border-0 bg-transparent p-0 text-current/80 hover:bg-current/10 hover:text-current" type="button" aria-label={item.name} title={item.name} data-rss-copy data-rss-url={item.href}><span class="grid place-items-center leading-none" data-rss-default-icon><ToolbarIcon icon={item.icon} /></span><Check class="hidden" aria-hidden="true" size="1em" data-rss-success-icon /><span class="pointer-events-none absolute top-[calc(100%+0.5rem)] left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-[4px] bg-foreground px-2 py-1 text-xs text-page shadow-mirages" role="status" data-rss-feedback>已复制</span><span class="sr-only">{item.name}</span></button>}
+        </div>
+      ))}
+    </div>
+  </div>
+</header>
+
+<button class="fixed top-[0.75rem] left-[0.75rem] z-[70] h-[2.5rem] cursor-pointer rounded-full border border-line/70 bg-nav px-[1.25rem] text-xs font-semibold tracking-[0.08em] text-foreground shadow-[0_2px_8px_rgb(0_0_0/24%)] backdrop-blur-sm transition-transform duration-200 md:hidden" id="toggle-nav" type="button" aria-label="打开导航" aria-controls="site-navigation" aria-expanded="false" data-open-drawer><span>MENU</span></button>
+<div class="pointer-events-none fixed inset-0 z-50 bg-black/40 opacity-0 transition-opacity duration-200 md:hidden" aria-hidden="true" data-drawer-backdrop></div>
+
+   <aside class="fixed inset-y-0 left-0 z-[60] flex w-[17.5rem] max-w-[84vw] -translate-x-full flex-col bg-page text-foreground shadow-none transition-transform duration-200 md:hidden" id="site-navigation" aria-label="移动端导航" aria-hidden="true" data-drawer data-pagefind-ignore="all">
+  <div class="min-h-0 flex-1 overflow-y-auto px-5 pt-9">
+    <div class="mb-6 flex justify-center" data-sidebar-avatar>
+      <a class="grid size-24 place-items-center overflow-hidden rounded-full border-2 border-line bg-raised text-2xl font-bold no-underline shadow-mirages" href="/about/" aria-label="关于作者">
+        <img class="size-full object-cover" src={siteConfig.site.author.avatar} alt={`${siteConfig.site.author.name} 的头像`} width="100" height="100" />
+      </a>
+    </div>
+    {hasSidebarSearch && <div class="mb-5" data-sidebar-search><Search mobile /></div>}
+    <nav aria-label="侧栏菜单">
+      <ul class="m-0 list-none p-0 text-[0.9375rem]">
+          <li><a class="block border-b border-line px-2 py-3 text-center no-underline" href="/">首页</a></li>
+          <li>
+            <button class="block w-full cursor-pointer border-0 border-b border-line bg-transparent px-2 py-3 text-center text-inherit" type="button" aria-expanded="false" aria-controls="mobile-category-menu" data-mobile-category-trigger>分类</button>
+            <details id="mobile-category-menu" data-mobile-category-menu>
+              <summary class="sr-only" aria-hidden="true">分类</summary>
+              <ul class="m-0 list-none p-0">
+                {categories.length > 0 ? categories.map((category) => <li><a class="ml-3 block border-l-2 border-line/60 bg-raised/45 px-3 py-2 text-center text-[0.8125rem] text-subtle no-underline hover:bg-raised hover:text-foreground" href={`/categories/${slugify(category.name)}/`}>{category.name}</a></li>) : <li class="ml-3 border-l-2 border-line/60 bg-raised/45 px-3 py-2 text-center text-[0.8125rem] text-subtle">暂无分类</li>}
+              </ul>
+            </details>
+          </li>
+          {pageItems.map((item) => <li><a class="block border-b border-line px-2 py-3 text-center no-underline" href={item.href} target={item.external ? '_blank' : undefined} rel={item.external ? 'noreferrer' : undefined}>{item.label}</a></li>)}
+      </ul>
+    </nav>
+  </div>
+   <div class="relative flex min-h-[4rem] items-center justify-center gap-[0.75rem] border-t border-line bg-raised px-[1rem]" data-sidebar-toolbar>
+    {sidebarToolbarItems.map((item) => (
+       <div class="static flex items-center" data-toolbar-item={item.type} data-toolbar-name={item.name}>
+        {item.type === 'settings' && <ThemeSwitcher placement="up" />}
+        {item.type === 'link' && <a class="grid size-[2.5rem] shrink-0 place-items-center text-foreground no-underline hover:bg-raised" href={item.href} target={item.external ? '_blank' : undefined} rel={item.external ? 'noreferrer' : undefined} aria-label={item.name} title={item.name}><ToolbarIcon icon={item.icon} /><span class="sr-only">{item.name}</span></a>}
+        {item.type === 'rss' && <button class="relative grid size-[2.5rem] shrink-0 cursor-pointer place-items-center border-0 bg-transparent p-0 text-foreground hover:bg-raised" type="button" aria-label={item.name} title={item.name} data-rss-copy data-rss-url={item.href}><span class="grid place-items-center leading-none" data-rss-default-icon><ToolbarIcon icon={item.icon} /></span><Check class="hidden" aria-hidden="true" size="1em" data-rss-success-icon /><span class="pointer-events-none absolute bottom-[calc(100%+0.5rem)] left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-[4px] bg-foreground px-2 py-1 text-xs text-page shadow-mirages" role="status" data-rss-feedback>已复制</span><span class="sr-only">{item.name}</span></button>}
+      </div>
+    ))}
+  </div>
+</aside>
+
+<script>
+  const setOpen = (open: boolean, restore = false) => {
+    const drawer = document.querySelector<HTMLElement>('[data-drawer]');
+    const backdrop = document.querySelector<HTMLElement>('[data-drawer-backdrop]');
+    const openButton = document.querySelector<HTMLButtonElement>('[data-open-drawer]');
+    drawer?.classList.toggle('-translate-x-full', !open);
+    openButton?.classList.toggle('is-drawer-open', open);
+    openButton?.setAttribute('aria-label', open ? '关闭导航' : '打开导航');
+    backdrop?.classList.toggle('pointer-events-none', !open);
+    backdrop?.classList.toggle('opacity-0', !open);
+    openButton?.setAttribute('aria-expanded', String(open));
+    drawer?.setAttribute('aria-hidden', String(!open));
+    document.body.classList.toggle('overflow-hidden', open);
+    if (restore) openButton?.focus();
+  };
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const target = event.target;
+    const openButton = target.closest<HTMLButtonElement>('[data-open-drawer]');
+    const backdrop = target.closest<HTMLElement>('[data-drawer-backdrop]');
+    const drawer = target.closest<HTMLElement>('[data-drawer]');
+    const categoryTrigger = target.closest<HTMLButtonElement>('[data-mobile-category-trigger]');
+    const rssButton = target.closest<HTMLButtonElement>('[data-rss-copy]');
+
+    if (rssButton) {
+      const successIcon = rssButton.querySelector<HTMLElement>('[data-rss-success-icon]');
+      const defaultIcon = rssButton.querySelector<HTMLElement>('[data-rss-default-icon]');
+      const feedback = rssButton.querySelector<HTMLElement>('[data-rss-feedback]');
+      void navigator.clipboard.writeText(new URL(rssButton.dataset.rssUrl ?? '', document.baseURI).href).then(() => {
+        window.clearTimeout(Number(rssButton.dataset.rssResetTimer));
+        defaultIcon?.classList.add('hidden');
+        successIcon?.classList.remove('hidden');
+        feedback?.classList.remove('hidden');
+        rssButton.dataset.rssResetTimer = String(window.setTimeout(() => {
+          defaultIcon?.classList.remove('hidden');
+          successIcon?.classList.add('hidden');
+          feedback?.classList.add('hidden');
+          delete rssButton.dataset.rssResetTimer;
+        }, 1200));
+      });
+    } else if (openButton) {
+      setOpen(openButton.getAttribute('aria-expanded') !== 'true', true);
+    } else if (backdrop || (drawer && target.closest('a'))) {
+      setOpen(false, true);
+    } else if (categoryTrigger) {
+      const menu = document.getElementById(categoryTrigger.getAttribute('aria-controls') ?? '') as HTMLDetailsElement | null;
+      if (menu) menu.open = !menu.open;
+    }
+  });
+  document.addEventListener('toggle', (event) => {
+    const menu = event.target as HTMLDetailsElement;
+    if (!menu.matches('[data-mobile-category-menu]')) return;
+    document.querySelector<HTMLButtonElement>(`[aria-controls="${menu.id}"]`)?.setAttribute('aria-expanded', String(menu.open));
+  }, true);
+  document.addEventListener('keydown', (event) => {
+    const openButton = document.querySelector<HTMLButtonElement>('[data-open-drawer]');
+    if (event.key === 'Escape' && openButton?.getAttribute('aria-expanded') === 'true') setOpen(false, true);
+    const menu = event.target instanceof Element ? event.target.closest<HTMLDetailsElement>('[data-category-menu]') : null;
+    if (event.key === 'Escape' && menu) {
+      menu.removeAttribute('open');
+      menu.querySelector<HTMLElement>('summary')?.focus();
+    }
+  });
+  document.addEventListener('pointerdown', (event) => {
+    document.querySelectorAll<HTMLDetailsElement>('[data-category-menu]').forEach((menu) => {
+      if (!menu.contains(event.target as Node)) menu.removeAttribute('open');
+    });
+  });
+  document.addEventListener('astro:before-preparation', () => setOpen(false));
+</script>
+
+<style is:global>
+  [data-open-drawer] {
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  [data-open-drawer].is-drawer-open {
+     transform: translateX(14.25rem);
+  }
+
+  .navbar-over-banner {
+    border-color: color-mix(in srgb, var(--color-border) 70%, transparent);
+    background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--color-text) 12%, transparent);
+  }
+
+  .navbar-over-banner [data-navbar-tools] > [data-toolbar-item] > a:hover,
+  .navbar-over-banner [data-navbar-tools] > [data-toolbar-item] > details > summary:hover,
+  .navbar-over-banner [data-navbar-tools] > [data-toolbar-item] > [data-search-root] > button:hover {
+    background: color-mix(in srgb, currentColor 16%, transparent);
+  }
+
+  .navbar-over-banner [data-navbar-tools] .navbar-search-container > .search-form {
+    border-color: color-mix(in srgb, var(--color-text) 50%, transparent);
+    background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+    color: var(--color-text);
+  }
+
+  .navbar-over-banner [data-navbar-tools] .navbar-search-container > .search-form input::placeholder {
+    color: color-mix(in srgb, currentColor 75%, transparent);
+  }
+</style>

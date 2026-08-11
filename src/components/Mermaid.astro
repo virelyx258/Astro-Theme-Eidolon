@@ -1,0 +1,22 @@
+---
+interface Props { enabled: boolean; }
+const { enabled } = Astro.props;
+---
+{enabled && <script>
+  const blocks = [...document.querySelectorAll('pre code.language-mermaid, pre[data-language="mermaid"] code')];
+  if (blocks.length) {
+    const mermaid = await import('mermaid');
+    const dark = document.documentElement.dataset.theme === 'dark' || (document.documentElement.dataset.theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+    mermaid.default.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default', securityLevel: 'strict' });
+    await Promise.all(blocks.map(async (block, index) => {
+      const wrapper = block.parentElement;
+      if (!wrapper) return;
+      const container = document.createElement('div');
+      container.className = 'mermaid';
+      container.id = `mermaid-${index}`;
+      container.textContent = block.textContent ?? '';
+      wrapper.replaceWith(container);
+      await mermaid.default.run({ nodes: [container] });
+    }));
+  }
+</script>}

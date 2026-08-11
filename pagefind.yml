@@ -1,0 +1,4 @@
+exclude_selectors:
+  - '[data-pagefind-ignore]'
+  - '.katex'
+  - '.search-panel'

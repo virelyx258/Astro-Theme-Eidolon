@@ -1,0 +1,129 @@
+---
+import { siteConfig } from '@/site.config';
+import { slugify } from '@/lib/content';
+import type { BannerTextTone } from '@/types/config';
+
+interface Props {
+  article?: {
+    title: string;
+    date: { year: string; month: string; day: string };
+    categories: string[];
+    image?: string;
+    textTone?: BannerTextTone;
+  };
+  banner?: {
+    title: string;
+    subtitle?: string;
+    image?: string;
+    position?: string;
+    textTone?: BannerTextTone;
+  };
+  about?: boolean;
+  textTone?: BannerTextTone;
+}
+
+const { article, banner, about = false } = Astro.props;
+const enabled = Boolean(about || article || banner || siteConfig.banner.enabled);
+const image = banner ? banner.image : article?.image ?? (about ? undefined : siteConfig.banner.image);
+const title = about ? siteConfig.site.author.name : (banner?.title ?? article?.title ?? siteConfig.banner.title);
+const subtitle = banner?.subtitle ?? siteConfig.banner.subtitle;
+const position = banner?.position ?? siteConfig.banner.position;
+---
+
+{enabled && <section
+  class="relative top-0 flex min-h-50 items-center justify-center overflow-hidden bg-raised pt-16 text-center text-foreground md:pt-16"
+  style={`background-position: ${position}; --mobile-height: ${siteConfig.banner.mobileHeightVh}vh; --desktop-height: ${siteConfig.banner.desktopHeightVh}vh; --overlay: ${siteConfig.banner.overlay}`}
+  data-banner-image={image || undefined}
+  data-banner-tone={image ? 'light' : undefined}
+  aria-labelledby="masthead-title"
+  data-pagefind-ignore="all"
+  data-banner
+>
+  {image && <div
+    class="absolute inset-0 z-0 bg-cover bg-no-repeat"
+    style={`background-image: url("${image}"); background-position: ${position}`}
+     aria-hidden="true"
+  ></div>}
+  {image && <div class="absolute inset-0 z-[1]" style={`background-color: rgb(0 0 0 / ${siteConfig.banner.overlay})`} aria-hidden="true"></div>}
+    <div class="relative z-10 flex w-[calc(100%-1.75rem)] flex-col items-center justify-center">
+    {about && <img
+      class:list={['mb-5 size-[7rem] rounded-full border-4 border-white/85 object-cover shadow-lg md:size-[9.375rem]', { 'about-avatar': siteConfig.site.author.rotateAvatar }]}
+      src={siteConfig.site.author.avatar}
+      alt={`${siteConfig.site.author.name} 的头像`}
+      width="150"
+      height="150"
+      loading="eager"
+      fetchpriority="high"
+    />}
+    <h1 class="m-0 text-[2rem] leading-tight font-light tracking-[0] md:text-[2.5rem]" id="masthead-title">{title}</h1>
+    {article ? <p class="masthead-meta mt-3 mb-0 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[0.9375rem] md:text-base">
+      <span class="masthead-date"><span>{article.date.year}</span><strong>年</strong><span>{article.date.month}</span><strong>月</strong><span>{article.date.day}</span><strong>日</strong></span>
+      {article.categories.length > 0 && <span class="masthead-separator" aria-hidden="true">·</span>}
+      {article.categories.map((category, index) => <Fragment>
+        {index > 0 && <span class="masthead-separator" aria-hidden="true">/</span>}
+        <a class="masthead-category" data-text-link href={`/categories/${slugify(category)}/`}>{category}</a>
+      </Fragment>)}
+    </p> : !about && subtitle && <p class="mt-3 mb-0 text-[0.9375rem] md:text-base">{subtitle}</p>}
+  </div>
+</section>}
+
+{enabled && image && <script>
+  const updateBannerTone = () => {
+    const masthead = document.querySelector<HTMLElement>('[data-banner][data-banner-image]');
+    const imageUrl = masthead?.dataset.bannerImage;
+    if (!masthead || !imageUrl) return;
+
+    const source = new Image();
+    source.crossOrigin = 'anonymous';
+    source.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const size = 32;
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        if (!context) throw new Error('Canvas context unavailable');
+        context.drawImage(source, 0, 0, size, size);
+        const pixels = context.getImageData(0, 0, size, size).data;
+        let luma = 0;
+        let weight = 0;
+        for (let index = 0; index < pixels.length; index += 4) {
+          const alpha = pixels[index + 3] / 255;
+          luma += (0.2126 * pixels[index] + 0.7152 * pixels[index + 1] + 0.0722 * pixels[index + 2]) * alpha;
+          weight += alpha;
+        }
+        masthead.dataset.bannerTone = weight && luma / weight >= 150 ? 'dark' : 'light';
+      } catch {
+        masthead.dataset.bannerTone = 'light';
+      }
+    };
+    source.onerror = () => { masthead.dataset.bannerTone = 'light'; };
+    source.src = imageUrl;
+  };
+
+  document.addEventListener('astro:page-load', updateBannerTone);
+  updateBannerTone();
+</script>}
+
+<style>
+  section { height: var(--mobile-height); }
+  :global(:root[data-font='serif']) section h1 { font-weight: 700; }
+  section[data-banner-image][data-banner-tone='dark'] h1,
+  section[data-banner-image][data-banner-tone='dark'] p,
+  section[data-banner-image][data-banner-tone='dark'] .masthead-meta { color: #201e1d; text-shadow: 0 1px 2px rgb(255 255 255 / 18%); }
+  section[data-banner-image][data-banner-tone='light'] h1,
+  section[data-banner-image][data-banner-tone='light'] p,
+  section[data-banner-image][data-banner-tone='light'] .masthead-meta { color: #fff; text-shadow: 0 1px 2px rgb(0 0 0 / 24%); }
+  section[data-banner-image][data-banner-tone='dark'] .masthead-meta a,
+  section[data-banner-image][data-banner-tone='light'] .masthead-meta a { color: inherit; }
+  .masthead-meta a { color: inherit; }
+  .masthead-meta a::after { border-color: currentColor; }
+  .masthead-date,
+  .masthead-separator { font-family: Consolas, Menlo, Monaco, 'lucida_console', 'Liberation_Mono', 'Courier_New', 'andale_mono', monospaceX, monospace, sans-serif; }
+  .masthead-date strong { font-family: var(--mirages-font-ui); font-weight: 400; }
+  .masthead-category { font-family: var(--mirages-font-ui); }
+  .about-avatar { animation: avatar-rotate 8s ease-in-out infinite alternate; }
+  @keyframes avatar-rotate { from { transform: rotate(-2deg); } to { transform: rotate(2deg); } }
+   @media (min-width: 48rem) { section { height: var(--desktop-height); } }
+  @media (prefers-reduced-motion: reduce) { .about-avatar { animation: none; transform: none; } }
+</style>

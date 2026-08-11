@@ -1,0 +1,14 @@
+---
+import type { PostEntry } from '@/lib/content';
+import { getPostTaxonomy, slugify } from '@/lib/content';
+interface Props { post: PostEntry; compact?: boolean; showTags?: boolean; }
+const { post, compact = false, showTags = true } = Astro.props;
+const taxonomy = getPostTaxonomy(post);
+const date = post.data.pubDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' });
+---
+<div class="flex flex-wrap items-center justify-center gap-2 text-sm text-subtle">
+  <time datetime={post.data.pubDate.toISOString()}>{date}</time>
+  {!compact && taxonomy.categories.length > 0 && <span aria-hidden="true">·</span>}
+  {!compact && taxonomy.categories.map((category) => <a data-text-link href={`/categories/${slugify(category)}/`}>{category}</a>)}
+  {!compact && showTags && taxonomy.tags.length > 0 && <span class="inline-flex flex-wrap gap-2" aria-label="标签">{taxonomy.tags.map((tag) => <a class="no-underline" href={`/tags/${slugify(tag)}/`}>#{tag}</a>)}</span>}
+</div>

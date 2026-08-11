@@ -1,0 +1,173 @@
+---
+import { siteConfig } from '@/site.config';
+
+interface Props { enabled: boolean; path?: string; }
+const { enabled, path } = Astro.props;
+const comments = siteConfig.comments;
+const config = comments.provider === 'twikoo' && comments.envId.trim() ? {
+  envId: comments.envId,
+  lang: comments.lang ?? siteConfig.site.locale,
+  path: comments.path ?? path ?? Astro.url.pathname,
+  ...(comments.envId.startsWith('http') ? {} : { region: comments.region })
+} : null;
+---
+{enabled && config && <section class="comments-shell" id="comments" aria-labelledby="comments-title">
+  <h2 id="comments-title">评论</h2>
+  <div id="twikoo-comments" data-twikoo-config={JSON.stringify(config)} data-twikoo-state="idle"></div>
+</section>}
+
+{enabled && !config && <section class="comments-shell comments-preview" id="comments" aria-labelledby="comments-title" data-pagefind-ignore="all">
+  <h2 id="comments-title">评论</h2>
+  <div class="twikoo-preview" aria-label="Twikoo 评论预览">
+    <p class="twikoo-preview-status">Twikoo 尚未配置</p>
+    <div class="twikoo-preview-fields" aria-hidden="true">
+      <span>昵称</span><span>邮箱</span><span>网址</span>
+    </div>
+    <div class="twikoo-preview-editor" aria-hidden="true">留下你的评论...</div>
+    <div class="twikoo-preview-actions" aria-hidden="true"><span>表情</span><button type="button" disabled>发布评论</button></div>
+    <p class="twikoo-preview-empty">暂无评论</p>
+  </div>
+</section>}
+
+<style is:global>
+  #comments { width: min(100%, var(--article-content-width)); margin: 4.375rem auto 0; }
+  #comments > h2 { margin: 0 0 1.5rem; padding-top: 1.375rem; border-top: 1px solid var(--color-border); color: var(--color-accent-strong); font-family: var(--reading-font-family); font-size: 1.5625rem; font-weight: 500; }
+  #twikoo-comments, #comments > #twikoo { color: var(--color-text); font-size: .94rem; }
+  #twikoo-comments .tk-comments-title, #comments > #twikoo .tk-comments-title { margin: 0 0 18px; color: var(--color-text); font-family: var(--font-serif); font-size: 1.1rem; font-weight: 600; }
+  #twikoo-comments .tk-comment, #comments > #twikoo .tk-comment { padding: 1.375rem 0; border-bottom: 1px solid var(--color-border); }
+  #twikoo-comments .tk-content, #twikoo-comments .tk-comment-content, #comments > #twikoo .tk-content, #comments > #twikoo .tk-comment-content { margin-top: .5rem; color: var(--color-text); line-height: 1.75; overflow-wrap: anywhere; }
+  #twikoo-comments .tk-content p, #twikoo-comments .tk-comment-content p, #comments > #twikoo .tk-content p, #comments > #twikoo .tk-comment-content p { margin: .35em 0; }
+  #twikoo-comments .tk-avatar, #twikoo-comments .tk-comment-avatar, #comments > #twikoo .tk-avatar, #comments > #twikoo .tk-comment-avatar { width: 3.125rem; height: 3.125rem; border-radius: 50%; background: var(--color-code); }
+  #twikoo-comments .tk-comment-name, #twikoo-comments .tk-nick, #comments > #twikoo .tk-comment-name, #comments > #twikoo .tk-nick { color: var(--color-text); font-weight: 700; }
+  #twikoo-comments .tk-meta, #twikoo-comments .tk-time, #twikoo-comments .tk-comment-actions, #twikoo-comments .tk-comment-edit, #comments > #twikoo .tk-meta, #comments > #twikoo .tk-time, #comments > #twikoo .tk-comment-actions, #comments > #twikoo .tk-comment-edit { color: var(--color-muted); font-size: .78rem; }
+  #twikoo-comments .tk-replies, #comments > #twikoo .tk-replies { margin: 1rem 0 0 -.25rem; padding-left: .375rem; border-left: 2px solid var(--color-border); }
+  #twikoo-comments .tk-replies .tk-comment, #comments > #twikoo .tk-replies .tk-comment { padding-block: .875rem; }
+  #twikoo-comments .tk-main, #comments > #twikoo .tk-main { margin-top: 1.375rem; }
+  #twikoo-comments .tk-input, #comments > #twikoo .tk-input { width: 100%; }
+  #twikoo-comments textarea, #twikoo-comments input, #comments > #twikoo textarea, #comments > #twikoo input { width: 100%; border: 2px solid var(--color-accent); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); }
+  #twikoo-comments textarea, #comments > #twikoo textarea { min-height: 120px; padding: 13px 15px; resize: vertical; }
+  #twikoo-comments input, #comments > #twikoo input { padding: 9px 11px; }
+  #twikoo-comments textarea:focus, #twikoo-comments input:focus, #comments > #twikoo textarea:focus, #comments > #twikoo input:focus { border-color: var(--color-accent-strong); outline: none; }
+  #twikoo-comments button, #twikoo-comments .tk-submit, #comments > #twikoo button, #comments > #twikoo .tk-submit { border: 1px solid var(--color-accent-strong); border-radius: var(--radius-sm); background: var(--color-accent); color: var(--color-accent-contrast); cursor: pointer; font-weight: 700; }
+  #twikoo-comments .tk-owo, #twikoo-comments .OwO, #comments > #twikoo .tk-owo, #comments > #twikoo .OwO { color: var(--color-muted); }
+  #twikoo-comments .OwO .OwO-body, #comments > #twikoo .OwO .OwO-body { border-color: var(--color-border); background: var(--color-surface); }
+  #twikoo-comments .tk-loading, #twikoo-comments .tk-empty, #twikoo-comments .tk-error, #comments > #twikoo .tk-loading, #comments > #twikoo .tk-empty, #comments > #twikoo .tk-error { padding: 22px 0; color: var(--color-muted); }
+  #twikoo-comments .tk-loading, #comments > #twikoo .tk-loading, #twikoo-comments .el-loading-spinner, #comments > #twikoo .el-loading-spinner { color: var(--color-accent) !important; }
+  #twikoo-comments .tk-loading :is(svg, path), #comments > #twikoo .tk-loading :is(svg, path), #twikoo-comments .el-loading-spinner :is(svg, path), #comments > #twikoo .el-loading-spinner :is(svg, path) { color: var(--color-accent) !important; stroke: currentColor !important; }
+  #twikoo-comments .el-loading-spinner .path, #comments > #twikoo .el-loading-spinner .path { stroke: var(--color-accent) !important; }
+  #twikoo-comments .tk-loading::before, #comments > #twikoo .tk-loading::before { border-color: color-mix(in srgb, var(--color-accent) 25%, transparent) !important; border-top-color: var(--color-accent) !important; }
+  #twikoo-comments[data-twikoo-state='idle'] { min-height: 80px; }
+  #twikoo-comments[data-twikoo-state='idle']::before { content: '评论将在滚动到此处时加载'; display: block; color: var(--color-muted); font-size: .86rem; }
+  #twikoo-comments[data-twikoo-error='true']::before { content: '评论暂时不可用。'; display: block; padding: 22px 0; color: var(--color-muted); }
+  .twikoo-preview { border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); }
+  .twikoo-preview-status { margin: 0; padding: 12px 15px; border-bottom: 1px solid var(--color-border); color: var(--color-muted); font-size: .86rem; }
+  .twikoo-preview-fields { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--color-border); }
+  .twikoo-preview-fields span { padding: 10px 12px; color: var(--color-muted); font-size: .82rem; }
+  .twikoo-preview-fields span + span { border-left: 1px solid var(--color-border); }
+  .twikoo-preview-editor { min-height: 120px; padding: 14px 15px; color: var(--color-muted); }
+  .twikoo-preview-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-top: 1px solid var(--color-border); color: var(--color-muted); font-size: .85rem; }
+  .twikoo-preview-actions button { padding: 7px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-raised); color: var(--color-muted); cursor: not-allowed; font-weight: 700; }
+  .twikoo-preview-empty { margin: 0; padding: 18px 15px; border-top: 1px solid var(--color-border); color: var(--color-muted); font-size: .9rem; text-align: center; }
+  #comments > #twikoo { margin: 0; background: transparent !important; color: var(--color-text) !important; font-family: var(--reading-font-family) !important; }
+  #comments > #twikoo a { color: var(--color-accent) !important; }
+  #comments > #twikoo .tk-submit { padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+  #comments > #twikoo .tk-row { align-items: flex-start !important; gap: .625rem !important; }
+  #comments > #twikoo .tk-submit > .tk-row { display: block !important; position: relative !important; }
+  #comments > #twikoo .tk-submit > .tk-row > .tk-avatar { position: absolute !important; top: 0 !important; left: 0 !important; }
+  #comments > #twikoo .tk-avatar { flex: 0 0 3.125rem !important; width: 3.125rem !important; height: 3.125rem !important; margin: 0 .625rem 0 0 !important; border-radius: 50% !important; background: var(--color-code) !important; color: var(--color-muted) !important; }
+  #comments > #twikoo .tk-avatar-img { width: 100% !important; height: 100% !important; }
+  #comments > #twikoo .tk-avatar-img svg { display: block !important; width: calc(100% + 2px) !important; height: calc(100% + 2px) !important; margin: -1px !important; padding: 0 !important; shape-rendering: geometricPrecision; }
+  #comments > #twikoo .tk-submit > .tk-row > .tk-col { box-sizing: border-box !important; width: 100% !important; min-width: 0 !important; padding-left: 3.75rem !important; }
+  #comments > #twikoo .tk-meta-input { box-sizing: border-box !important; display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: .625rem !important; width: 100% !important; margin-bottom: .625rem !important; }
+  #comments > #twikoo .tk-meta-input > .el-input { width: 100% !important; min-width: 0 !important; height: 2.125rem !important; }
+  #comments > #twikoo .tk-meta-input > .el-input.el-input-group { display: flex !important; box-sizing: border-box !important; margin-left: 0 !important; }
+  #comments > #twikoo .tk-meta-input > .el-input.el-input-group .el-input-group__prepend { box-sizing: border-box !important; display: flex !important; flex: 0 0 3.75rem !important; align-items: center !important; justify-content: center !important; min-width: 3.75rem !important; padding-inline: .35rem !important; text-align: center !important; white-space: nowrap !important; }
+  #comments > #twikoo .tk-meta-input > .el-input.el-input-group .el-input__inner { min-width: 0 !important; flex: 1 1 auto !important; }
+  #comments > #twikoo .el-input-group__prepend { padding: 0 .55rem !important; border: 1px solid var(--color-border) !important; border-right: 0 !important; border-radius: var(--radius-sm) 0 0 var(--radius-sm) !important; background: var(--color-code) !important; color: var(--color-muted) !important; font-size: .78rem !important; }
+  #comments > #twikoo .el-input__inner { height: 2.125rem !important; padding: .438rem .525rem !important; border: 1px solid var(--color-border) !important; border-radius: 0 var(--radius-sm) var(--radius-sm) 0 !important; background: var(--color-surface) !important; color: var(--color-text) !important; font-family: var(--reading-font-family) !important; box-shadow: none !important; }
+  #comments > #twikoo .el-input__inner:focus, #comments > #twikoo .el-textarea__inner:focus { border-color: var(--color-accent) !important; }
+  #comments > #twikoo .tk-input { width: 100% !important; }
+  #comments > #twikoo .el-textarea__inner { min-height: 7.5rem !important; padding: .75rem .875rem !important; border: 1px solid var(--color-border) !important; border-radius: var(--radius-sm) !important; background: var(--color-surface) !important; color: var(--color-text) !important; font-family: var(--reading-font-family) !important; line-height: 1.6 !important; box-shadow: none !important; resize: vertical !important; }
+  #comments > #twikoo .el-input__count { right: .625rem !important; bottom: .35rem !important; background: transparent !important; color: var(--color-muted) !important; }
+  #comments > #twikoo .tk-row.actions { box-sizing: border-box !important; display: flex !important; justify-content: flex-end !important; width: calc(100% - 3.75rem) !important; margin: .625rem 0 0 3.75rem !important; padding-top: .625rem !important; }
+  #comments > #twikoo .tk-row-actions-start { gap: .5rem !important; }
+  #comments > #twikoo .tk-submit-action-icon { color: var(--color-muted) !important; }
+  #comments > #twikoo .OwO-logo { color: var(--color-muted) !important; }
+  #comments > #twikoo .OwO-body { border: 1px solid var(--color-border) !important; border-radius: var(--radius-sm) !important; background: var(--color-surface) !important; color: var(--color-text) !important; box-shadow: var(--shadow-soft) !important; }
+  #comments > #twikoo .tk-send { min-width: 7rem !important; height: 2.25rem !important; border: 0 !important; border-radius: var(--radius-sm) !important; background: var(--color-accent) !important; color: var(--color-accent-contrast) !important; font-weight: 500 !important; }
+  #comments > #twikoo .tk-send.is-disabled { opacity: .55 !important; }
+  #comments > #twikoo .tk-preview { border: 1px solid var(--color-border) !important; border-radius: var(--radius-sm) !important; background: transparent !important; color: var(--color-muted) !important; }
+  #comments > #twikoo .tk-comments-container { margin-top: 3rem !important; }
+  #comments > #twikoo .tk-comments-title { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 1rem !important; }
+  #comments > #twikoo .tk-comments-actions { display: flex !important; align-items: center !important; gap: .5rem !important; margin-left: auto !important; }
+  #comments > #twikoo .tk-comments-actions .tk-sort-item { display: inline-flex !important; align-items: center !important; height: 1.75rem !important; padding: .125rem .35rem !important; border: 0 !important; border-radius: var(--radius-sm) !important; background: transparent !important; color: var(--color-muted) !important; font-family: var(--reading-font-family) !important; font-size: .75rem !important; font-weight: 400 !important; }
+  #comments > #twikoo .tk-comments-actions .tk-sort-item:hover, #comments > #twikoo .tk-comments-actions .tk-sort-item.__active { background: var(--color-code) !important; color: var(--color-accent) !important; }
+  #comments > #twikoo .tk-comments-actions .tk-icon:first-of-type { display: none !important; }
+  #comments > #twikoo .tk-comments-actions .tk-icon.__comments { color: var(--color-accent) !important; }
+  #comments > #twikoo .tk-comments-title { margin: 0 0 1rem !important; padding-top: 1.125rem !important; border-top: 1px solid var(--color-border) !important; color: var(--color-accent) !important; font-family: var(--reading-font-family) !important; font-size: 1.25rem !important; font-weight: 500 !important; }
+  #comments > #twikoo .tk-comment { align-items: flex-start !important; margin-top: 1.625rem !important; padding: 0 0 .5rem !important; border: 0 !important; background: transparent !important; }
+  #comments > #twikoo .tk-comment > .tk-avatar { flex: 0 0 2.25rem !important; width: 2.25rem !important; height: 2.25rem !important; margin: 0 .75rem 0 0 !important; }
+  #comments > #twikoo .tk-comment > .tk-main { min-width: 0 !important; margin-top: 0 !important; }
+  #comments > #twikoo .tk-comment > .tk-main > .tk-row { align-items: flex-start !important; }
+  #comments > #twikoo .tk-nick { color: var(--color-text) !important; font-size: .875rem !important; font-weight: 500 !important; }
+  #comments > #twikoo .tk-nick strong { color: inherit !important; font-weight: 500 !important; }
+  #comments > #twikoo .tk-time, #comments > #twikoo .tk-meta, #comments > #twikoo .tk-comment-actions { color: var(--color-muted) !important; font-size: .75rem !important; font-weight: 400 !important; }
+  #comments > #twikoo .tk-meta { align-items: baseline !important; gap: .5rem !important; }
+  #comments > #twikoo .tk-time { margin-left: .5rem !important; }
+  #comments > #twikoo .tk-action { display: flex !important; align-items: center !important; gap: .25rem !important; }
+  #comments > #twikoo .tk-action-link { display: inline-flex !important; align-items: center !important; gap: .2rem !important; min-width: 2.5rem !important; height: 1.75rem !important; padding: .125rem .3rem !important; border: 0 !important; border-radius: var(--radius-sm) !important; background: transparent !important; color: var(--color-muted) !important; font-family: var(--reading-font-family) !important; font-size: .75rem !important; font-weight: 400 !important; }
+  #comments > #twikoo .tk-action-link:hover { background: var(--color-code) !important; color: var(--color-accent) !important; }
+  #comments > #twikoo .tk-action-link:focus-visible { outline: 1px solid var(--color-accent) !important; outline-offset: 1px !important; }
+  #comments > #twikoo .tk-action-icon { display: inline-flex !important; width: .8rem !important; height: .8rem !important; color: currentColor !important; }
+  #comments > #twikoo .tk-action-icon svg { width: 100% !important; height: 100% !important; }
+  #comments > #twikoo .tk-action-icon-solid { display: none !important; }
+  #comments > #twikoo .tk-action-link:is(.tk-liked, .tk-disliked) .tk-action-icon { display: none !important; }
+  #comments > #twikoo .tk-action-link:is(.tk-liked, .tk-disliked) .tk-action-icon-solid { display: inline-flex !important; width: .8rem !important; height: .8rem !important; color: currentColor !important; }
+  #comments > #twikoo .tk-action-link:not(:is(.tk-liked, .tk-disliked)):hover .tk-action-icon { display: inline-flex !important; }
+  #comments > #twikoo .tk-action-link:not(:is(.tk-liked, .tk-disliked)):hover .tk-action-icon-solid { display: none !important; }
+  #comments > #twikoo .tk-action-link:nth-child(1)::after { content: '赞'; }
+  #comments > #twikoo .tk-action-link:nth-child(2)::after { content: '踩'; }
+  #comments > #twikoo .tk-action-link:nth-child(3)::after { content: '回复'; }
+  #comments > #twikoo .tk-action:has(> .tk-action-link:nth-child(4)) .tk-action-link:nth-child(1)::after { content: '删除'; }
+  #comments > #twikoo .tk-action:has(> .tk-action-link:nth-child(4)) .tk-action-link:nth-child(2)::after { content: '赞'; }
+  #comments > #twikoo .tk-action:has(> .tk-action-link:nth-child(4)) .tk-action-link:nth-child(3)::after { content: '踩'; }
+  #comments > #twikoo .tk-action:has(> .tk-action-link:nth-child(4)) .tk-action-link:nth-child(4)::after { content: '回复'; }
+  #comments > #twikoo .tk-action-count { color: inherit !important; font-size: .7rem !important; }
+  #comments > #twikoo .tk-action-link.tk-delete::after, #comments > #twikoo .tk-action-link[data-action='delete']::after { content: '删除'; }
+  #comments > #twikoo .tk-content, #comments > #twikoo .tk-comment-content { margin-top: .625rem !important; padding: 0 !important; color: var(--color-text) !important; font-size: .9375rem !important; line-height: 1.6 !important; }
+  #comments > #twikoo .tk-content p, #comments > #twikoo .tk-comment-content p { margin: .35em 0 !important; }
+  #comments > #twikoo .tk-replies { margin: 1rem 0 0 0 !important; padding-left: 1rem !important; border-left: .25rem solid var(--color-code) !important; }
+  #comments > #twikoo .tk-replies .tk-comment { padding-block: .875rem !important; }
+  #comments > #twikoo .tk-empty, #comments > #twikoo .tk-error { padding: 1rem 0 !important; color: var(--color-muted) !important; }
+  @media (max-width: 37.5rem) {
+    #comments { width: 100%; }
+    #comments > #twikoo { font-size: .9rem !important; }
+    #comments > #twikoo .tk-comments-title { align-items: flex-start !important; flex-wrap: wrap !important; }
+    #comments > #twikoo .tk-comments-title { gap: .625rem !important; }
+    #comments > #twikoo .tk-comments-actions { display: flex !important; flex-wrap: wrap !important; width: 100% !important; margin-left: 0 !important; gap: .25rem !important; }
+    #comments > #twikoo .tk-comments-actions .tk-sort-item { padding-inline: .25rem !important; }
+    #comments > #twikoo .tk-submit > .tk-row { display: flex !important; align-items: flex-start !important; gap: .5rem !important; }
+    #comments > #twikoo .tk-submit > .tk-row > .tk-avatar { position: static !important; flex: 0 0 1.875rem !important; width: 1.875rem !important; height: 1.875rem !important; margin: 0 !important; }
+    #comments > #twikoo .tk-submit > .tk-row > .tk-col { flex: 1 1 auto !important; width: auto !important; padding-left: 0 !important; }
+    #comments > #twikoo .tk-comment > .tk-avatar { flex: 0 0 2rem !important; width: 2rem !important; height: 2rem !important; margin: 0 .625rem 0 0 !important; }
+    #comments > #twikoo .tk-avatar { flex-shrink: 0 !important; }
+    #comments > #twikoo .tk-meta-input { grid-template-columns: 1fr !important; gap: .35rem !important; }
+    #comments > #twikoo .tk-meta-input > .el-input { min-width: 0 !important; }
+    #comments > #twikoo .tk-row.actions { display: flex !important; flex-wrap: wrap !important; align-items: center !important; justify-content: space-between !important; width: 100% !important; margin: .625rem 0 0 !important; padding-top: .5rem !important; gap: .5rem !important; }
+    #comments > #twikoo .tk-row-actions-start { flex: 1 1 auto !important; min-width: 0 !important; flex-wrap: wrap !important; }
+    #comments > #twikoo .tk-send { flex: 0 0 auto !important; min-width: 5.5rem !important; }
+    #comments > #twikoo .tk-meta { min-width: 0 !important; flex-wrap: wrap !important; gap: .25rem .5rem !important; }
+    #comments > #twikoo .tk-time { margin-left: 0 !important; }
+    #comments > #twikoo .tk-action { flex-wrap: wrap !important; gap: .125rem !important; }
+    #comments > #twikoo .tk-action-link { box-sizing: border-box !important; flex: 0 0 1.75rem !important; justify-content: center !important; width: 1.75rem !important; min-width: 1.75rem !important; height: 1.75rem !important; margin: 0 !important; padding: 0 !important; gap: 0 !important; }
+    #comments > #twikoo .tk-action-link .tk-action-count { display: none !important; margin: 0 !important; }
+    #comments > #twikoo .tk-action-link .tk-action-icon { flex: 0 0 .8rem !important; }
+    #comments > #twikoo .tk-action-link::after { content: none !important; }
+    #comments > #twikoo .tk-content, #comments > #twikoo .tk-comment-content { min-width: 0 !important; overflow-wrap: anywhere !important; }
+    #comments > #twikoo .tk-replies { width: 100% !important; margin-left: 0 !important; padding-left: .625rem !important; overflow: hidden !important; }
+    #comments > #twikoo .tk-replies .tk-comment { min-width: 0 !important; }
+    #comments > #twikoo .tk-replies .tk-comment > .tk-avatar { flex-basis: 1.75rem !important; width: 1.75rem !important; height: 1.75rem !important; margin-right: .5rem !important; }
+    #comments > #twikoo .OwO .OwO-body { right: 0 !important; left: auto !important; width: min(18rem, 100vw - 2rem) !important; }
+  }
+  @media (max-width: 37.5rem) { #comments { margin-top: 3.25rem; } #twikoo-comments .tk-avatar, #twikoo-comments .tk-comment-avatar { width: 1.875rem; height: 1.875rem; } }
+</style>

@@ -1,0 +1,88 @@
+<script>
+  import 'photoswipe/style.css';
+
+  const imageSelector = '.prose img';
+  const excludedImageAncestors = '.mermaid, .katex, pre, [data-lightbox-ignore]';
+  let lightboxPromise: Promise<import('photoswipe/lightbox').default> | undefined;
+
+  const isLightboxImage = (image: HTMLImageElement, prose: HTMLElement) =>
+    prose.contains(image) && !image.closest(excludedImageAncestors) && !image.closest('a');
+
+  const getImages = (prose: HTMLElement) => [...prose.querySelectorAll<HTMLImageElement>('img')]
+    .filter((image) => isLightboxImage(image, prose));
+
+  const getSize = (image: HTMLImageElement) => {
+    const width = Number(image.dataset.originalWidth) || Number(image.getAttribute('width')) || image.naturalWidth || image.clientWidth || 1200;
+    const height = Number(image.dataset.originalHeight) || Number(image.getAttribute('height')) || image.naturalHeight || image.clientHeight || Math.round(width * 2 / 3);
+    return { width, height };
+  };
+
+  const open = async (image: HTMLImageElement, images: HTMLImageElement[]) => {
+    const index = images.indexOf(image);
+    const src = image.currentSrc || image.src;
+    if (index < 0 || !src) return;
+    const items = images.map((item) => ({
+      ...getSize(item),
+      src: item.dataset.originalSrc || item.currentSrc || item.src,
+      alt: item.alt
+    }));
+
+    lightboxPromise ??= import('photoswipe/lightbox').then(({ default: PhotoSwipeLightbox }) => {
+      const lightbox = new PhotoSwipeLightbox({
+        pswpModule: () => import('photoswipe'),
+        bgClickAction: 'close'
+      });
+      lightbox.init();
+      return lightbox;
+    });
+    try {
+      const lightbox = await lightboxPromise;
+      lightbox.loadAndOpen(index, items);
+    } catch (error) {
+      lightboxPromise = undefined;
+      console.error('Unable to open image lightbox', error);
+    }
+  };
+
+  const init = () => {
+    document.querySelectorAll<HTMLElement>('.prose').forEach((prose) => {
+      if (prose.dataset.lightboxReady === 'true') return;
+      prose.dataset.lightboxReady = 'true';
+      const prepareImage = (image: HTMLImageElement) => {
+        if (!isLightboxImage(image, prose)) return;
+        image.classList.add('lightbox-image');
+        image.tabIndex = image.tabIndex >= 0 ? image.tabIndex : 0;
+        image.setAttribute('role', 'button');
+        image.setAttribute('aria-label', image.alt ? `查看大图：${image.alt}` : '查看大图');
+      };
+      getImages(prose).forEach(prepareImage);
+      const observer = new MutationObserver(() => getImages(prose).forEach(prepareImage));
+      observer.observe(prose, { childList: true, subtree: true });
+      prose.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        const image = target.closest<HTMLImageElement>(imageSelector);
+        if (!image || !isLightboxImage(image, prose)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        void open(image, getImages(prose));
+      });
+      prose.addEventListener('keydown', (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        const image = target.closest<HTMLImageElement>(imageSelector);
+        if (!image || !isLightboxImage(image, prose) || (event.key !== 'Enter' && event.key !== ' ')) return;
+        event.preventDefault();
+        void open(image, getImages(prose));
+      });
+    });
+  };
+
+  init();
+  document.addEventListener('astro:page-load', init);
+</script>
+
+<style is:global>
+  .prose img.lightbox-image { cursor: zoom-in; }
+  .prose img.lightbox-image:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
+</style>

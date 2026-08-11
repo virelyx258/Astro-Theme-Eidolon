@@ -1,0 +1,15 @@
+---
+import type { PostEntry } from '@/lib/content';
+import PostCard from './PostCard.astro';
+import Pagination from './Pagination.astro';
+interface Props { posts: PostEntry[]; title?: string; description?: string; current?: number; total?: number; basePath?: string; }
+const { posts, title, description, current = 1, total = 1, basePath = '' } = Astro.props;
+---
+<section class="mx-auto w-full px-5 pt-8 pb-14 md:max-w-[752px] md:px-0 md:pt-10 min-[1302px]:max-w-[896px] min-[1600px]:max-w-[928px] min-[1800px]:max-w-[992px] min-[2000px]:max-w-[1024px] min-[2400px]:max-w-[1056px]" aria-labelledby={title ? 'list-title' : undefined}>
+  {title && <header class="mb-5 border-b border-line pb-3">
+    <h1 class="m-0 text-xl leading-tight font-normal tracking-[0]" id="list-title">{title}</h1>
+    {description && <p class="mt-1 mb-0 text-sm text-subtle">{description}</p>}
+  </header>}
+  {posts.length > 0 ? posts.map((post) => <PostCard post={post} />) : <p class="py-8 text-subtle">暂时还没有已发布的文章。</p>}
+  <Pagination current={current} total={total} basePath={basePath} />
+</section>

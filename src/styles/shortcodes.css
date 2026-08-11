@@ -1,0 +1,428 @@
+.prose .shortcode-button {
+  display: inline-block;
+  margin: 0.2em 0.25em 0.2em 0;
+  padding: 0.35em 0.8em;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-family: var(--mirages-font-ui);
+  font-size: 0.9em;
+}
+.prose .shortcode-button:hover {
+  background: var(--color-accent-strong);
+  color: var(--color-bg);
+}
+.prose .shortcode-file {
+  background: transparent;
+  color: var(--color-accent);
+}
+.shortcode-tag {
+  display: inline-block;
+  margin: 0.15em 0.3em 0.15em 0;
+  padding: 0.08em 0.55em;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font: 0.82em var(--mirages-font-ui);
+}
+.shortcode-tag-outline {
+  background: transparent;
+  color: var(--color-accent);
+  outline: 1px solid currentColor;
+}
+.shortcode-tag-success {
+  background: #287d5b;
+}
+.shortcode-tag-warning {
+  background: #a36b16;
+}
+.shortcode-tag-danger {
+  background: #ad3d48;
+}
+.shortcode-tag-info {
+  background: #35769b;
+}
+.shortcode-hint {
+  margin: 1.2em 0;
+  padding: 0.7em 1em;
+  border-left: 4px solid var(--color-accent);
+  background: var(--color-surface);
+}
+.shortcode-hint strong {
+  display: block;
+  margin-bottom: 0.2em;
+  font-family: var(--mirages-font-ui);
+}
+.shortcode-hint p {
+  margin: 0.25em 0;
+}
+.shortcode-hint-warning,
+.shortcode-hint-warn {
+  border-color: #a36b16;
+}
+.shortcode-hint-error,
+.shortcode-hint-danger {
+  border-color: #ad3d48;
+}
+.shortcode-hint-success {
+  border-color: #287d5b;
+}
+.shortcode-collapse {
+  margin: 1.2em 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+.shortcode-collapse summary {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid transparent;
+  background: color-mix(in srgb, var(--color-accent) 7%, var(--color-surface));
+  color: var(--color-text);
+  font-family: var(--mirages-font-ui);
+  font-weight: 600;
+  list-style: none;
+}
+:root[data-font='serif'] .shortcode-collapse summary {
+  font-family: var(--mirages-font-serif);
+}
+.shortcode-collapse summary::-webkit-details-marker {
+  display: none;
+}
+.shortcode-collapse[open] summary {
+  border-bottom-color: var(--color-border);
+}
+.shortcode-collapse-marker {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 0.5rem;
+  order: 2;
+  margin-left: auto;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 160ms ease;
+}
+.shortcode-collapse:not([data-collapse-ready])[open] > summary .shortcode-collapse-marker,
+.shortcode-collapse.is-expanded > summary .shortcode-collapse-marker {
+  transform: rotate(-135deg) translate(-2px, -2px);
+}
+.shortcode-body {
+  box-sizing: border-box;
+  height: 0;
+  padding-inline: 1.5rem;
+  overflow: hidden;
+  transition: height 220ms ease;
+}
+.shortcode-collapse > .shortcode-body > .shortcode-body-inner {
+  display: block;
+  padding-block: 1rem;
+  padding-inline: 0;
+}
+.shortcode-collapse > .shortcode-body > .shortcode-body-inner > :first-child {
+  margin-top: 0;
+}
+.shortcode-collapse > .shortcode-body > .shortcode-body-inner > :last-child {
+  margin-bottom: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shortcode-body { transition: none; }
+}
+.shortcode-body-inner table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.shortcode-body .shortcode-collapse {
+  margin: 1rem 0 0.25rem;
+}
+.shortcode-body .shortcode-collapse .shortcode-body-inner {
+  padding-inline: 0.85rem;
+}
+.shortcode-body .shortcode-collapse {
+  border-left: 2px solid
+    color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-bg) 35%, var(--color-surface));
+}
+.shortcode-body .shortcode-body .shortcode-collapse {
+  border-left-color: color-mix(
+    in srgb,
+    var(--color-accent) 25%,
+    var(--color-border)
+  );
+}
+.shortcode-tabs {
+  margin: 1.2em 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+.shortcode-tab-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.35rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.shortcode-tab-list button {
+  cursor: pointer;
+  padding: 0.4rem 0.7rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+}
+.shortcode-tab-list button[aria-selected="true"] {
+  background: var(--color-bg);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+.shortcode-tabs [role="tabpanel"] {
+  padding: 0.8rem 1rem;
+  background: var(--color-surface);
+}
+.shortcode-tools {
+  margin: 1.5em 0;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-family: var(--reading-font-family);
+}
+.shortcode-tools-title {
+  margin: 0 0 0.55rem;
+  color: var(--color-text);
+  font: 600 1rem/1.35 var(--reading-font-family);
+}
+.shortcode-tool-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.shortcode-tool {
+  min-width: 0;
+}
+.shortcode-tool-link {
+  display: flex;
+  min-width: 0;
+  min-height: 3.5rem;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.shortcode-tool-link:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+  color: var(--color-text);
+}
+.shortcode-tool-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 2.5rem;
+  place-items: center;
+  border-radius: 0.7rem;
+  background: var(--color-code);
+}
+:root[data-theme='dark'] .shortcode-tool-icon {
+  background: color-mix(in srgb, var(--color-bg) 88%, white);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='auto'] .shortcode-tool-icon {
+    background: color-mix(in srgb, var(--color-bg) 88%, white);
+  }
+}
+.shortcode-tool-icon img {
+  display: block;
+  width: 72%;
+  height: 72%;
+  margin: 0;
+  object-fit: contain;
+}
+.shortcode-tool-content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.08rem;
+  line-height: 1.25;
+}
+.shortcode-tool-name,
+.shortcode-tool-description {
+  overflow-wrap: anywhere;
+}
+.shortcode-tool-name {
+  font-size: 0.9rem;
+  font-family: var(--reading-font-family);
+  line-height: 1.25;
+}
+.shortcode-tool-description {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+@media (max-width: 38rem) {
+  .shortcode-tools {
+    padding: 0.8rem;
+  }
+  .shortcode-tool-list {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shortcode-tool-link { transition: none; }
+}
+.shortcode-github {
+  margin: 1.2em 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 0;
+}
+.shortcode-github-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem 0.7rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.shortcode-github-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
+}
+.shortcode-github-title h3 {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 600 1.08rem/1.35 var(--mirages-font-ui);
+}
+.shortcode-github-icon {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 1.25rem;
+  color: var(--color-text);
+}
+.shortcode-github-owner,
+.shortcode-github-repo {
+  color: var(--color-text);
+  text-decoration: none;
+}
+.shortcode-github-owner:hover,
+.shortcode-github-repo:hover {
+  color: var(--color-accent);
+}
+.shortcode-github-repo {
+  color: var(--color-accent);
+}
+.shortcode-github-stats {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  color: var(--color-muted);
+  font: 0.75rem var(--mirages-font-ui);
+  text-align: right;
+}
+.shortcode-github-stat {
+  white-space: nowrap;
+}
+.shortcode-github-stat b {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.shortcode-github-stat-empty b {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+.shortcode-github-content {
+  padding: 0.85rem 1rem 0.9rem;
+}
+.shortcode-github-description {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.92rem;
+}
+.shortcode-github-read-more {
+  display: inline-block;
+  margin-top: 0.7rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+  font: 0.78rem var(--mirages-font-ui);
+  text-decoration: none;
+}
+.shortcode-github-read-more:hover,
+.shortcode-github-download:hover {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-accent);
+}
+.shortcode-github-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 2.8rem;
+  padding: 0.6rem 1rem;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font: 0.75rem var(--mirages-font-ui);
+}
+.shortcode-github-commit {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.shortcode-github-commit-label {
+  color: var(--color-text);
+}
+.shortcode-github-date {
+  color: var(--color-muted);
+}
+.shortcode-github-download {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+  text-decoration: none;
+}
+@media (max-width: 32rem) {
+  .shortcode-github-header,
+  .shortcode-github-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .shortcode-github-stats {
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+.shortcode-invalid {
+  color: var(--color-muted);
+  font-style: italic;
+}
+.shortcode-notice {
+  display: inline-block;
+  padding: 0.1em 0.45em;
+  border-left: 2px solid var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  color: var(--color-accent);
+}

@@ -1,0 +1,90 @@
+---
+import { Search as SearchIcon } from '@lucide/astro';
+import { siteConfig } from '@/site.config';
+
+interface Props { mobile?: boolean; }
+const { mobile = false } = Astro.props;
+const placeholder = siteConfig.search.provider === 'pagefind' ? siteConfig.search.placeholder : '搜索';
+---
+
+<div class:list={['relative', { 'w-full': mobile, 'navbar-search-container': !mobile }]} data-search-root data-mobile-search={mobile ? '' : undefined}>
+  {!mobile && <button class="grid size-[2.5rem] cursor-pointer place-items-center border-0 bg-transparent text-current hover:bg-current/10" type="button" aria-label="展开搜索" title="搜索" aria-expanded="false" data-search-toggle>
+    <SearchIcon aria-hidden="true" size="1em" />
+  </button>}
+  <form class:list={['search-form items-center border-b text-current', mobile ? 'flex w-full border-line px-1' : 'absolute top-0 right-[2.5rem] flex h-[2.5rem] w-[18rem] border-current/50 bg-nav px-2 opacity-0 shadow-sm pointer-events-none']} action={`${import.meta.env.BASE_URL}search/`} method="get" role="search" data-search-form>
+    <input class="min-w-0 flex-1 border-0 bg-transparent px-2 py-2 text-sm text-current outline-none ring-0 shadow-none focus:border-0 focus:outline-none focus:ring-0 focus:shadow-none placeholder:text-current/65" type="search" name="q" required placeholder={placeholder} autocomplete="off" spellcheck="false" aria-label="搜索文章" data-search-input />
+    {mobile && <button class="grid size-[2rem] shrink-0 cursor-pointer place-items-center border-0 bg-transparent text-current hover:bg-current/10" type="submit" aria-label="搜索" title="搜索"><SearchIcon aria-hidden="true" size="1em" /></button>}
+  </form>
+</div>
+
+<script>
+  const closeSearch = (root: HTMLElement, restoreFocus = false) => {
+    const input = root.querySelector<HTMLInputElement>('[data-search-input]');
+    const toggle = root.querySelector<HTMLButtonElement>('[data-search-toggle]');
+    if (root.hasAttribute('data-mobile-search')) input?.blur();
+    else {
+      root.classList.remove('is-open');
+      toggle?.setAttribute('aria-expanded', 'false');
+      if (restoreFocus) toggle?.focus();
+    }
+  };
+
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const toggle = event.target.closest<HTMLButtonElement>('[data-search-toggle]');
+    if (!toggle) return;
+    const root = toggle.closest<HTMLElement>('[data-search-root]');
+    if (!root) return;
+    if (root.classList.contains('is-open')) closeSearch(root, true);
+    else {
+      root.classList.add('is-open');
+      toggle.setAttribute('aria-expanded', 'true');
+      requestAnimationFrame(() => root.querySelector<HTMLInputElement>('[data-search-input]')?.focus());
+    }
+  });
+  document.addEventListener('submit', (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || !form.matches('[data-search-form]')) return;
+    if (!form.querySelector<HTMLInputElement>('[data-search-input]')?.value.trim()) event.preventDefault();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !(event.target instanceof Element)) return;
+    const root = event.target.closest<HTMLElement>('[data-search-root]');
+    if (!root) return;
+    event.preventDefault();
+    closeSearch(root, true);
+  });
+  document.addEventListener('pointerdown', (event) => {
+    document.querySelectorAll<HTMLElement>('[data-search-root].is-open').forEach((root) => {
+      if (!root.contains(event.target as Node)) closeSearch(root);
+    });
+  });
+</script>
+
+<style is:global>
+  .navbar-search-container > .search-form {
+    transform-origin: right center;
+    scale: 0 1;
+    transition: scale 200ms ease-out, opacity 200ms ease-out;
+  }
+
+  .search-form input[type='search']::-webkit-search-cancel-button {
+    width: 1em;
+    height: 1em;
+    margin-inline: 0.25em;
+  }
+
+  .navbar-search-container.is-open > .search-form {
+    pointer-events: auto;
+    scale: 1 1;
+    opacity: 1;
+  }
+
+  /* The search field deliberately keeps focus semantics without a visible focus treatment. */
+  .search-form [data-search-input]:is(:focus, :focus-visible) {
+    border-color: transparent !important;
+    outline: none !important;
+    outline-offset: 0 !important;
+    box-shadow: none !important;
+  }
+</style>

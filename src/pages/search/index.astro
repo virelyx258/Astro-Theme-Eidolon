@@ -1,0 +1,110 @@
+---
+import { Search as SearchIcon } from '@lucide/astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+const query = Astro.url.searchParams.get('q')?.trim() ?? '';
+---
+
+<BaseLayout title={query ? `搜索：${query}` : '搜索'} description="搜索 Mirages 中的文章。" noindex>
+   <section class="mx-auto w-full px-[48px] pt-16 pb-14 max-[336px]:px-5 md:max-w-[720px] md:px-0 md:pt-20 min-[1302px]:max-w-[864px] min-[1600px]:max-w-[896px] min-[1800px]:max-w-[960px] min-[2000px]:max-w-[992px] min-[2400px]:max-w-[1024px]" data-search-page>
+    <header class="mb-8 border-b border-line pb-4">
+      <h1 class="m-0 text-xl leading-tight font-normal">搜索结果</h1>
+      <p class="mt-2 mb-0 text-sm text-subtle" data-search-query>{query ? `查询词：${query}` : '请输入查询词开始搜索。'}</p>
+    </header>
+    <form class="mb-8 flex items-center border-b border-line text-current" action={`${import.meta.env.BASE_URL}search/`} method="get" role="search">
+      <SearchIcon class="shrink-0 text-subtle" aria-hidden="true" size={17} />
+      <input class="min-w-0 flex-1 border-0 bg-transparent px-2 py-2 text-sm text-current outline-none focus:border-0 focus:outline-none focus:ring-0" type="search" name="q" value={query} placeholder="搜索文章" required aria-label="搜索文章" />
+      <button class="border-0 bg-transparent px-2 py-2 text-sm text-mirages-accent hover:bg-raised" type="submit">搜索</button>
+    </form>
+    <div data-search-page-results aria-live="polite">
+      {query ? <p class="px-3 py-4 text-sm text-subtle">正在搜索...</p> : <p class="px-3 py-4 text-sm text-subtle">请输入查询词开始搜索。</p>}
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  interface PagefindResult { data: () => Promise<{ url: string; meta?: { title?: string; date?: string; category?: string; categories?: string; tags?: string; cover?: string } }>; }
+  interface PagefindModule { options: (options: { excerptLength: number }) => Promise<void>; search: (query: string) => Promise<{ results: PagefindResult[] }>; }
+
+  const root = document.querySelector<HTMLElement>('[data-search-page]');
+  const results = root?.querySelector<HTMLElement>('[data-search-page-results]');
+  const queryLabel = root?.querySelector<HTMLElement>('[data-search-query]');
+  const input = root?.querySelector<HTMLInputElement>('input[name="q"]');
+  const query = new URLSearchParams(window.location.search).get('q')?.trim() ?? '';
+  if (query) {
+    if (queryLabel) queryLabel.textContent = `查询词：${query}`;
+    if (input) input.value = query;
+  }
+   const cardBackgrounds = ['#547a82', '#806b76', '#657657', '#876d56', '#5f718d', '#796f54'];
+   const cardBackground = (url: string) => {
+     let hash = 0;
+     for (const character of url) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+     return cardBackgrounds[hash % cardBackgrounds.length];
+   };
+
+  const run = async () => {
+    if (!query || !results) return;
+    if (import.meta.env.DEV) { results.innerHTML = '<p class="px-3 py-4 text-sm text-subtle">搜索功能需在构建并预览后使用。</p>'; return; }
+    try {
+       const pagefindUrl = new URL(`${import.meta.env.BASE_URL}pagefind/pagefind.js`, document.baseURI).href;
+       const pagefind = await import(/* @vite-ignore */ pagefindUrl) as unknown as PagefindModule;
+      await pagefind.options({ excerptLength: 0 });
+      const search = await pagefind.search(query);
+      results.replaceChildren();
+      if (!search.results.length) {
+        results.innerHTML = '<p class="px-3 py-4 text-sm text-subtle">没有找到相关内容。</p>';
+        return;
+      }
+      for (const result of search.results) {
+        const data = await result.data();
+         const article = document.createElement('article');
+         article.className = 'py-[0.9375rem] md:py-[0.9375rem]';
+         const link = document.createElement('a');
+         link.className = 'group relative block h-50 overflow-hidden rounded-[0.3125rem] bg-[var(--card-background)] text-white no-underline shadow-sm transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.005] hover:text-white hover:shadow-mirages max-[21rem]:h-42 md:h-62';
+          link.href = data.url;
+          link.style.setProperty('--card-background', cardBackground(data.url));
+         if (data.meta?.cover) {
+           const image = document.createElement('img');
+           image.className = 'absolute inset-0 size-full object-cover';
+           image.src = data.meta.cover;
+            image.alt = '';
+            image.loading = 'lazy';
+            link.append(image);
+         }
+         const mask = document.createElement('span');
+         mask.className = 'absolute inset-0 z-10 bg-black/25';
+         mask.setAttribute('aria-hidden', 'true');
+         link.append(mask);
+         const content = document.createElement('div');
+         content.className = 'absolute inset-0 z-20 flex flex-col items-center justify-center px-4 py-4 text-center md:px-6';
+         const title = document.createElement('h2');
+         title.className = 'm-0 max-w-[90%] [overflow-wrap:anywhere] font-sans text-[1.5625rem] leading-tight font-normal tracking-[0]';
+          title.textContent = data.meta?.title || data.url;
+         content.append(title);
+          const date = data.meta?.date;
+          const categories = data.meta?.categories ?? data.meta?.category;
+          const tags = data.meta?.tags;
+          if (date || categories || tags) {
+            const info = document.createElement('p');
+            info.className = 'mt-3 mb-0 max-w-[90%] [overflow-wrap:anywhere] text-[0.8125rem] leading-relaxed font-normal text-[#eee] [font-family:Consolas,Menlo,Monaco,"lucida_console","Liberation_Mono","Courier_New","andale_mono",monospaceX,monospace,sans-serif]';
+            const appendMeta = (value: string | undefined, className?: string) => {
+              if (!value) return;
+              if (info.childNodes.length > 0) info.append(' · ');
+              const item = document.createElement('span');
+              item.textContent = value;
+              if (className) item.className = className;
+              info.append(item);
+            };
+            appendMeta(date);
+            appendMeta(categories, '[font-family:var(--mirages-font-ui)]');
+            appendMeta(tags);
+            content.append(info);
+         }
+         link.append(content);
+         article.append(link);
+         results.append(article);
+      }
+    } catch { results.innerHTML = '<p class="px-3 py-4 text-sm text-subtle">搜索暂时不可用。</p>'; }
+  };
+  run();
+</script>
