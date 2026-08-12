@@ -23,7 +23,7 @@ const blogsClubBadge = `https://www.blogsclub.org/badge/${blogDomain}/theme`;
      -->
      
      {siteConfig.footer.links.length > 0 && <nav aria-label="页脚导航">{siteConfig.footer.links.map((item, index) => <Fragment>{index > 0 && ' · '}<a data-text-link href={item.href} target={item.external ? '_blank' : undefined} rel={item.external ? 'noreferrer' : undefined}><span class:list={{ 'footer-chinese': containsChinese(item.label) }} lang={containsChinese(item.label) ? 'zh-CN' : undefined}>{item.label}</span></a></Fragment>)}</nav>}
-     <p class="m-0">Powered By Astro · Theme <a data-text-link href="https://src.luming.cool/riseforever2026/Eidolon">Eidolon</a></p>
+     <p class="m-0">Powered By <a data-text-link href="https://astro.build">Astro</a> · Theme <a data-text-link href="https://src.luming.cool/riseforever2026/Eidolon">Eidolon</a></p>
     {siteConfig.footer.copyright && <p class="m-0">{siteConfig.footer.copyright}</p>}
      {siteConfig.footer.note && <p class="footer-chinese m-0" lang="zh-CN">{siteConfig.footer.note}</p>}
      {siteConfig.footer.theme && <p class="m-0"><a data-text-link href={siteConfig.footer.theme.href} target={siteConfig.footer.theme.external ? '_blank' : undefined} rel={siteConfig.footer.theme.external ? 'noreferrer' : undefined}>{siteConfig.footer.theme.label}</a></p>}
