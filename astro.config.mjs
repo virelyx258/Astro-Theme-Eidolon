@@ -6,9 +6,23 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import shortcodes from './src/lib/shortcodes.ts';
 import externalLinks from './src/lib/external-links.ts';
+import responsiveTables from './src/lib/responsive-tables.ts';
+import noticeShortcode from './src/lib/notice-shortcode.ts';
 import { siteConfig } from './src/site.config.ts';
-import { readFileSync } from 'node:fs';
+import { copyFileSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const rootGif = resolve(process.cwd(), '88x31.gif');
+
+const copyRootGif = {
+  name: 'copy-root-gif',
+  hooks: {
+    'astro:build:done': ({ dir }) => {
+      copyFileSync(rootGif, resolve(fileURLToPath(dir), '88x31.gif'));
+    }
+  }
+};
 
 let githubData = {};
 try {
@@ -20,7 +34,7 @@ try {
 
 export default defineConfig({
   site: siteConfig.site.url,
-  integrations: [sitemap()],
+  integrations: [sitemap(), copyRootGif],
   vite: {
     plugins: [tailwindcss()]
   },
@@ -34,7 +48,7 @@ export default defineConfig({
     },
     processor: unified({
       remarkPlugins: [remarkMath, [shortcodes, { githubData, siteUrl: siteConfig.site.url }]],
-      rehypePlugins: [rehypeKatex, [externalLinks, { siteUrl: siteConfig.site.url }]]
+      rehypePlugins: [rehypeKatex, noticeShortcode, responsiveTables, [externalLinks, { siteUrl: siteConfig.site.url }]]
     })
   }
 });

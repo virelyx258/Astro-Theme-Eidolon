@@ -14,7 +14,7 @@ export async function getStaticPaths() {
 }
 const { posts, page, total } = Astro.props;
 ---
-<BaseLayout title={`文章 - 第 ${page} 页`} navbarOverlay={Boolean(siteConfig.banner.image)}>
-  <Fragment slot="masthead"><Masthead /></Fragment>
+<BaseLayout title={`文章 - 第 ${page} 页`} hasMasthead={siteConfig.banner.enabled} navbarOverlay={siteConfig.banner.enabled && Boolean(siteConfig.banner.image)}>
+  {siteConfig.banner.enabled && <Fragment slot="masthead"><Masthead /></Fragment>}
   <PostList posts={posts} current={page} total={total} basePath="" />
 </BaseLayout>

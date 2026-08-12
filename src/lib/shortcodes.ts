@@ -5,10 +5,18 @@ import { toHast } from 'mdast-util-to-hast';
 import { gfm } from 'micromark-extension-gfm';
 import { visit } from 'unist-util-visit';
 import { applyExternalLinks } from './external-links';
+import { applyResponsiveTables } from './responsive-tables';
+import { applyNoticeShortcodes } from './notice-shortcode';
 
 const URL_SCHEME = /^(https?:|mailto:|tel:)/i;
 const TAG_TYPES = new Set(['primary', 'success', 'warning', 'danger', 'info', 'default']);
 const HINT_TYPES = new Set(['warn', 'warning', 'error', 'danger', 'success', 'info']);
+const HINT_ICONS: Record<string, string> = {
+  info: '<circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path>',
+  warning: '<circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path>',
+  danger: '<path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 8.54 21h6.92a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path>',
+  success: '<path d="m9 12 2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle>',
+};
 const BLOCK_NAMES = new Set(['hint', 'tip', 'collapse', 'tabs', 'tools']);
 const INLINE_NAMES = new Set(['button', 'btn', 'file', 'tag', 'label']);
 type GithubData = { stars?: string; forks?: string; description?: string; commitDate?: string; htmlUrl?: string; defaultBranch?: string };
@@ -61,12 +69,44 @@ function normalizeMarkdownHeadings(source: string): string {
   }).join('\n');
 }
 
-function markdown(source: string, preserveHtml = false): string {
+function markdown(source: string, preserveHtml = true, lineNumbers = true): string {
   const normalized = normalizeMarkdownHeadings(source);
   const tree = fromMarkdown(normalized, { extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()] });
   transform(tree, normalized);
   if (!preserveHtml) visit(tree, 'html', (node: any) => { if (!node.data?.shortcode) node.value = ''; });
   const hast = toHast(tree, { allowDangerousHtml: true }) as any;
+  if (lineNumbers) {
+    visit(hast, 'element', (node: any) => {
+      if (node.tagName !== 'pre') return;
+      const code = node.children?.find((child: any) => child.type === 'element' && child.tagName === 'code');
+      if (!code) return;
+      const classes = Array.isArray(node.properties?.className) ? node.properties.className : [];
+      if (!classes.includes('astro-code')) classes.push('astro-code');
+      if (!classes.includes('shortcode-code')) classes.push('shortcode-code');
+      if (!classes.includes('no-pangu-spacing')) classes.push('no-pangu-spacing');
+      node.properties = { ...node.properties, className: classes };
+      if (code.children?.every((child: any) => child.type === 'text')) {
+        const value = code.children.map((child: any) => child.value).join('');
+        const text = value.endsWith('\n') ? value.slice(0, -1) : value;
+        const lines = text.split('\n');
+        code.children = lines.map((line: string) => ({
+          type: 'element',
+          tagName: 'span',
+          properties: { className: ['line'] },
+          children: [
+            {
+              type: 'element',
+              tagName: 'span',
+              properties: { className: ['line-content'] },
+              children: line ? [{ type: 'text', value: line }] : [{ type: 'text', value: '\n' }],
+            }
+          ],
+        }));
+      }
+    });
+  }
+  applyNoticeShortcodes(hast);
+  applyResponsiveTables(hast);
   if (siteUrl) applyExternalLinks(hast, siteUrl);
   return toHtml(hast, { allowDangerousHtml: true });
 }
@@ -77,10 +117,16 @@ export function renderMarkdown(source: string): string {
 
 function renderBlock(name: string, args: Record<string, string>, body = ''): string {
   const label = args.title ?? args.name ?? args.text ?? body.trim().split('\n')[0] ?? '';
-  if (name === 'button' || name === 'btn' || name === 'file') {
+  if (name === 'button' || name === 'btn') {
     const url = safeUrl(args.href ?? args.url ?? args.link);
     if (!url) return `<span class="shortcode-invalid">${escape(label || '链接不可用')}</span>`;
     return `<a class="shortcode-button shortcode-${name}" href="${escape(url)}" data-no-text-link>${inline(label || url)}</a>`;
+  }
+  if (name === 'file') {
+    const url = safeUrl(args.href ?? args.url ?? args.link);
+    if (!url) return `<span class="shortcode-invalid">${escape(label || '文件链接不可用')}</span>`;
+    const icon = '<svg class="content-file-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M10 12v-1"></path><path d="M10 18v-2"></path><path d="M10 7v1"></path><path d="M10 15h.01"></path></svg>';
+    return `<a class="shortcode-file content-file" href="${escape(url)}" target="_blank" rel="noopener noreferrer" data-no-text-link>${icon}<span class="content-file-filename">${inline(label || url)}</span></a>`;
   }
   if (name === 'tag' || name === 'label') {
     const type = TAG_TYPES.has(args.type ?? '') ? args.type : 'default';
@@ -88,22 +134,24 @@ function renderBlock(name: string, args: Record<string, string>, body = ''): str
     return `<span class="shortcode-tag shortcode-tag-${type}${outline}">${inline(label)}</span>`;
   }
   if (name === 'hint' || name === 'tip') {
-    const type = HINT_TYPES.has(args.type ?? '') ? args.type : 'info';
-    const title = args.title ? `<strong>${inline(args.title)}</strong>` : '';
-    return `<aside class="shortcode-hint shortcode-hint-${type}" role="note">${title}${markdown(body)}</aside>`;
+    const requestedType = args.type ?? [...HINT_TYPES].find((candidate) => args[candidate] !== undefined);
+    const type = requestedType === 'warn' ? 'warning' : requestedType === 'error' ? 'danger' : HINT_TYPES.has(requestedType ?? '') ? requestedType : 'info';
+    const icon = `<svg class="content-hint-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${HINT_ICONS[type]}</svg>`;
+    const heading = args.title ? `<div class="content-hint-heading">${icon}<p class="content-hint-title">${inline(args.title)}</p></div>` : icon;
+    return `<aside class="shortcode-hint content-hint shortcode-${name} shortcode-hint-${type} hint-${type}${args.title ? ' content-hint-has-title' : ''}" role="note">${heading}${markdown(body, true, true)}</aside>`;
   }
   if (name === 'collapse') {
     const open = args.open !== undefined || args.expanded !== undefined ? ' open' : '';
-    return `<details class="shortcode-collapse"${open}><summary><span class="shortcode-collapse-marker" aria-hidden="true"></span><span>${inline(label || '展开内容')}</span></summary><div class="shortcode-body"><div class="shortcode-body-inner">${markdown(body, true)}</div></div></details>`;
+    return `<details class="shortcode-collapse"${open}><summary><span class="shortcode-collapse-marker" aria-hidden="true"></span><span>${inline(label || '展开内容')}</span></summary><div class="shortcode-body"><div class="shortcode-body-inner">${markdown(body, true, true)}</div></div></details>`;
   }
   if (name === 'tabs') {
     const parsed = parseBlocks(body);
     const tabs = parsed.filter((item) => item.name === 'tab');
-    if (!tabs.length) return `<details class="shortcode-collapse"><summary><span class="shortcode-collapse-marker" aria-hidden="true"></span><span>${inline(label || '展开内容')}</span></summary><div class="shortcode-body"><div class="shortcode-body-inner">${markdown(body)}</div></div></details>`;
+    if (!tabs.length) return `<details class="shortcode-collapse"><summary><span class="shortcode-collapse-marker" aria-hidden="true"></span><span>${inline(label || '展开内容')}</span></summary><div class="shortcode-body"><div class="shortcode-body-inner">${markdown(body, true, true)}</div></div></details>`;
     const id = `shortcode-tabs-${tabs.length}-${Math.random().toString(36).slice(2, 8)}`;
     const selected = Math.max(0, tabs.findIndex((tab) => tab.args.selected !== undefined));
     const buttons = tabs.map((tab, index) => `<button type="button" role="tab" aria-controls="${id}-panel-${index}" aria-selected="${index === selected}" id="${id}-tab-${index}" data-shortcode-tab="${id}"${index === selected ? '' : ' tabindex="-1"'}>${inline(tab.args.name ?? tab.args.title ?? `选项 ${index + 1}`)}</button>`).join('');
-    const panels = tabs.map((tab, index) => `<div role="tabpanel" id="${id}-panel-${index}" aria-labelledby="${id}-tab-${index}"${index === selected ? '' : ' hidden'}>${markdown(tab.body)}</div>`).join('');
+    const panels = tabs.map((tab, index) => `<div role="tabpanel" id="${id}-panel-${index}" aria-labelledby="${id}-tab-${index}"${index === selected ? '' : ' hidden'}>${markdown(tab.body, true, true)}</div>`).join('');
     return `<section class="shortcode-tabs" data-shortcode-tabs="${id}"><div class="shortcode-tab-list" role="tablist" aria-label="${escape(label || '选项卡')}">${buttons}</div>${panels}</section>`;
   }
   if (name === 'tools') {
@@ -151,8 +199,28 @@ function renderBlock(name: string, args: Record<string, string>, body = ''): str
 
 function parseBlocks(source: string): Array<{ name: string; args: Record<string, string>; body: string }> {
   const result: Array<{ name: string; args: Record<string, string>; body: string }> = [];
-  const pattern = /^\[tab([^\]]*)\]\s*\n?([\s\S]*?)^\[\/tab\]\s*$/gm;
-  for (const match of source.matchAll(pattern)) result.push({ name: 'tab', args: attrs(match[1]), body: match[2] });
+  let fence: string | null = null;
+  let opening: { args: Record<string, string>; bodyStart: number } | null = null;
+  for (const line of source.matchAll(/^[^\n]*(?:\n|$)/gm)) {
+    const text = line[0].trim();
+    const start = line.index!;
+    const fenceMatch = text.match(/^(`{3,}|~{3,})/);
+    if (fenceMatch) {
+      if (!fence) fence = fenceMatch[1][0];
+      else if (fenceMatch[1][0] === fence) fence = null;
+      continue;
+    }
+    if (fence) continue;
+
+    const closing = text.match(/^\[\/tab\]\s*$/i);
+    if (closing && opening) {
+      result.push({ name: 'tab', args: opening.args, body: source.slice(opening.bodyStart, start) });
+      opening = null;
+      continue;
+    }
+    const openingMatch = text.match(/^\[tab([^\]]*)\]\s*$/i);
+    if (openingMatch && !opening) opening = { args: attrs(openingMatch[1]), bodyStart: start + line[0].length };
+  }
   return result;
 }
 
@@ -220,15 +288,9 @@ function findBlocks(source: string): Array<{ name: string; args: Record<string, 
 }
 
 function replaceInline(source: string): string | null {
-  const noticePattern = /^\[!(?:\/\s*)?\]\s*(.+)$/gm;
-  let replacedNotice = false;
-  source = source.replace(noticePattern, (_match, body) => {
-    replacedNotice = true;
-    return `<span class="shortcode-notice" role="note">${inline(body)}</span>`;
-  });
-  const shortcode = /\[(button|btn|file|tag|label)([^\]]*)\]([\s\S]*?)\[\/\1\]/gi;
+  const shortcode = /\[(button|btn|file|tag|label|hint|tip)([^\]]*)\]([\s\S]*?)\[\/\1\]/gi;
   const replacedShortcode = shortcode.test(source);
-  if (!replacedNotice && !replacedShortcode) return null;
+  if (!replacedShortcode) return null;
   return source.replace(shortcode, (_match, name, rawArgs, body) => renderBlock(name.toLowerCase(), attrs(rawArgs), body));
 }
 
@@ -268,6 +330,7 @@ function transform(tree: any, raw = '') {
     const output: any[] = [];
     for (const node of root.children) {
       if (node.type !== 'paragraph' && node.type !== 'html') { output.push(node); continue; }
+      if (node.type === 'html' && node.data?.shortcode) { output.push(node); continue; }
       const source = node.type === 'html' ? node.value : node.position ? raw.slice(node.position.start.offset, node.position.end.offset) : '';
       const replaced = replaceInline(source.trim());
       output.push(replaced ? { type: 'html', value: replaced, data: { shortcode: true } } : node);

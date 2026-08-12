@@ -1,0 +1,90 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Masthead from '@/components/Masthead.astro';
+import { renderMarkdown } from '@/lib/shortcodes';
+
+const page = (await getCollection('pages')).find((entry) => entry.data.slug === 'links');
+if (!page) throw new Error('Missing links page content.');
+type Link = { name: string; url: string; avatar: string; description: string };
+type Section = { name: string; links: Link[]; contentLines: string[] };
+const sections: Section[] = [{ name: '其他', links: [], contentLines: [] }];
+let section = sections[0];
+let shortcodeDepth = 0;
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!);
+const renderNestedCard = (link: Link) => `<div class="links-nested-card"><article class="link-card"><img class="link-avatar" src="${escapeHtml(link.avatar)}" alt="" width="32" height="32" loading="lazy"><div class="link-copy"><h3><a class="link-name" data-text-link href="${escapeHtml(link.url)}" target="_blank" rel="noreferrer">${escapeHtml(link.name)}</a></h3><p class="link-description">${escapeHtml(link.description)}</p></div></article></div>`;
+for (const line of (page.body ?? '').split(/\r?\n/)) {
+  if (/^\s*\[(?:collapse|hint|tip|tabs)\b[^\]]*\]\s*$/i.test(line)) {
+    shortcodeDepth += 1;
+    section.contentLines.push(line);
+    continue;
+  }
+  if (/^\s*\[\/(?:collapse|hint|tip|tabs)\]\s*$/i.test(line)) {
+    shortcodeDepth = Math.max(0, shortcodeDepth - 1);
+    section.contentLines.push(line);
+    continue;
+  }
+  const heading = line.match(/^##\s+(.+?)\s*#*$/);
+  if (heading && shortcodeDepth === 0) {
+    section = { name: heading[1].trim(), links: [], contentLines: [] };
+    sections.push(section);
+    continue;
+  }
+  const link = line.match(/^\s*\[([^\]]+)\]\(([^)]+)\)\+\(([^)]+)\)\/\((.*)\)\s*$/)
+    ?? line.match(/^\s*\[([^\]]+)\]\(([^)]+)\)\+\(([^)]+)\)\/(.*?)\s*\)?$/);
+  if (link && shortcodeDepth === 0) {
+    section.links.push({ name: link[1], url: link[2], avatar: link[3], description: link[4] });
+    continue;
+  }
+  section.contentLines.push(shortcodeDepth > 0 && link ? renderNestedCard({ name: link[1], url: link[2], avatar: link[3], description: link[4] }) : line);
+}
+if (!sections[0].links.length && !sections[0].contentLines.some((line) => line.trim())) sections.shift();
+---
+
+  <BaseLayout title={page.data.title} description={page.data.description} image={page.data.hero ?? page.data.cover} navbarOverlay={Boolean(page.data.hero ?? page.data.cover)}>
+  <Fragment slot="masthead"><Masthead banner={{ title: page.data.title, subtitle: page.data.description, image: page.data.hero ?? page.data.cover, textTone: page.data.textTone }} /></Fragment>
+  <section class="links-shell" aria-label="友链内容">
+    {sections.map((group) => <section class="links-category" aria-labelledby={`links-category-${group.name}`}>
+      <h2 id={`links-category-${group.name}`}>{group.name}</h2>
+      {group.links.length > 0 && <ul class="links-list">
+        {group.links.map((link) => <li class="link-entry">
+          <article class="link-card">
+            <img class="link-avatar" src={link.avatar} alt="" width="32" height="32" loading="lazy" />
+            <div class="link-copy">
+              <h3><a class="link-name" data-text-link href={link.url} target="_blank" rel="noreferrer">{link.name}</a></h3>
+              <p class="link-description">{link.description}</p>
+            </div>
+          </article>
+        </li>)}
+      </ul>}
+      {group.contentLines.some((line) => line.trim()) && <div class="links-content prose" set:html={renderMarkdown(group.contentLines.join('\n'))}></div>}
+    </section>)}
+  </section>
+</BaseLayout>
+
+<style>
+  .links-shell { width: min(calc(100% - 2.5rem), var(--article-content-width)); margin-inline: auto; padding-block: 2rem 5rem; }
+  .links-category + .links-category { margin-top: 2rem; }
+  .links-category h2 { margin: 0 0 .75rem; padding-bottom: .5rem; border-bottom: 1px solid var(--color-border); font-size: 1.2rem; font-weight: 600; }
+  .links-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .25rem; margin: 0; padding: 0; list-style: none; }
+  .link-entry { min-width: 0; margin: 0; }
+  .link-card { display: flex; align-items: flex-start; gap: .75rem; min-width: 0; padding: .75rem .65rem; border-radius: var(--radius-sm); transition: background-color var(--transition-fast); }
+  .link-entry:hover { background: var(--color-archive-hover); }
+  .link-avatar { width: 2rem; height: 2rem; flex: 0 0 2rem; border-radius: 50%; object-fit: cover; background: var(--color-surface); }
+  .link-copy { min-width: 0; line-height: 1.7; overflow-wrap: anywhere; }
+  .link-copy h3 { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.45; }
+  .link-name { display: inline; color: var(--color-accent); text-decoration: none; }
+  :global(:root[data-theme='sunset']) .link-name { color: color-mix(in srgb, var(--color-accent-strong) 82%, black); }
+  .link-description, .link-note { margin: .2rem 0 0; color: color-mix(in srgb, var(--color-text) 82%, var(--color-muted)); font-size: .88rem; }
+  .link-note { font-size: .86rem; }
+  .links-content { margin-top: 2rem; }
+  .links-content .links-nested-card { margin-block: 1rem; }
+  .links-content .link-card { margin: 0; }
+  .links-content .link-avatar { display: block; width: 2rem; height: 2rem; margin: 0; }
+  .links-content .link-copy h3 { margin: 0; font-size: 1rem; line-height: 1.45; }
+  .links-content .link-description { margin: .2rem 0 0; }
+  @media (max-width: 37.5rem) {
+    .links-shell { width: min(calc(100% - 1.75rem), var(--article-content-width)); padding-block: 2rem 3.5rem; }
+    .links-list { grid-template-columns: 1fr; }
+  }
+</style>

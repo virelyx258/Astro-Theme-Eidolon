@@ -12,7 +12,7 @@ const tags = deriveTaxonomy(posts, 'tags')
 const visibleTags = tagLimit === 0 ? tags : tags.slice(0, Math.max(0, tagLimit));
 ---
 <BaseLayout title="归档" description="按日期和主题整理的文章。">
-  <Fragment slot="masthead"><Masthead banner={{ title: '归档', subtitle: '按日期和主题整理的文章。',image: 'https://image.luming.cool/i/2026/06/06/6a23f222a1641.webp', textTone: 'auto' }} /></Fragment>
+  <Fragment slot="masthead"><Masthead banner={{ title: '归档', subtitle: '按日期和主题整理的文章。',image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2000&q=85', textTone: 'auto' }} /></Fragment>
   <div class="article-shell archives-shell pt-8 pb-14 md:pt-10 md:pb-20">
     <WritingHeatmap posts={posts} />
     <section class="archives-tags" aria-labelledby="tag-cloud-title" data-pagefind-ignore="all">

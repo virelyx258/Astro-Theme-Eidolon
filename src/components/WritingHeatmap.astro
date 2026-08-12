@@ -187,7 +187,7 @@ const totalWordsLabel = totalWords >= 10_000
       const availableCellSize = (heatmapScroll.clientWidth - 3.25 * baseRootFontSize) / 53;
 
       if (scale <= 1.01 || baseCellSize === 0) {
-        baseCellSize = Math.min(12, Math.max(8, availableCellSize));
+        baseCellSize = Math.max(8, availableCellSize);
       }
       heatmapGrid.style.setProperty('--heatmap-cell-size', `${baseCellSize * scale}px`);
       heatmapViewport?.classList.toggle('has-overflow', heatmapGrid.getBoundingClientRect().width > heatmapScroll.clientWidth + 1);

@@ -131,54 +131,88 @@
   font-family: var(--mirages-font-code);
   font-size: .875rem;
   line-height: 1.45;
+  white-space: pre;
+}
+
+.prose .astro-code {
+  --code-line-digits: 1;
+  --code-gutter-background: color-mix(in srgb, var(--color-code) 65%, var(--color-border));
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  background: var(--color-code);
 }
 
 .prose .astro-code code {
-  --code-line-digits: 1;
   display: block;
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: none;
+  width: 100%;
+  min-width: 0;
   padding-block: 1rem;
   counter-reset: code-line;
-  font-size: 0;
+  font-size: .875rem;
+  line-height: 1.45;
+  scrollbar-color: color-mix(in srgb, var(--color-muted) 60%, transparent) transparent;
+  scrollbar-width: thin;
+  white-space: normal;
 }
 
-.prose .astro-code code:has(.line:nth-child(10)) { --code-line-digits: 2; }
-.prose .astro-code code:has(.line:nth-child(100)) { --code-line-digits: 3; }
-.prose .astro-code code:has(.line:nth-child(1000)) { --code-line-digits: 4; }
+.prose .astro-code code::-webkit-scrollbar { height: 8px; }
+.prose .astro-code code::-webkit-scrollbar-thumb { border-radius: 4px; background: color-mix(in srgb, var(--color-muted) 60%, transparent); }
+.prose .astro-code code::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--color-muted) 78%, transparent); }
+
+.prose .astro-code:has(.line:nth-child(10)) { --code-line-digits: 2; }
+.prose .astro-code:has(.line:nth-child(100)) { --code-line-digits: 3; }
+.prose .astro-code:has(.line:nth-child(1000)) { --code-line-digits: 4; }
+
+.prose .astro-code .code-line-numbers {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 20;
+  display: block;
+  width: calc(var(--code-line-digits) * 1ch + 2rem);
+  padding-block: 1rem;
+  font-family: var(--mirages-font-code);
+  font-size: .875rem;
+  line-height: 1.45;
+  background: var(--code-gutter-background);
+  border-right: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  box-sizing: border-box;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  user-select: none;
+  pointer-events: none;
+}
+
+.prose .astro-code .code-line-numbers > span {
+  display: block;
+  height: 1.45em;
+  padding-inline: 1rem;
+  box-sizing: border-box;
+  color: inherit;
+}
 
 .prose .astro-code .line {
-  display: flex;
+  display: block;
+  width: max-content;
+  min-width: 100%;
   min-height: 1.45em;
+  padding-left: calc(var(--code-line-digits) * 1ch + 3rem);
+  box-sizing: border-box;
   counter-increment: code-line;
   font-size: .875rem;
   line-height: 1.45;
+  white-space: pre;
 }
 
 .prose .astro-code .line::before {
-  display: inline-block;
-  width: calc(var(--code-line-digits) * 1ch + 2rem);
-  flex: 0 0 calc(var(--code-line-digits) * 1ch + 2rem);
-  margin-right: 1rem;
-  padding-inline: 1rem;
-  background: var(--color-code-gutter);
-  box-sizing: border-box;
-  color: var(--color-muted);
-  content: counter(code-line);
-  font-variant-numeric: tabular-nums;
-  opacity: 0.72;
-  text-align: right;
-  user-select: none;
-}
-
-.prose .astro-code .line:first-child::before {
-  box-shadow: 0 -1rem var(--color-code-gutter);
-}
-
-.prose .astro-code .line:last-child::before {
-  box-shadow: 0 1rem var(--color-code-gutter);
-}
-
-.prose .astro-code .line:only-child::before {
-  box-shadow: 0 -1rem var(--color-code-gutter), 0 1rem var(--color-code-gutter);
+  content: none;
 }
 
 .prose .astro-code span {
@@ -186,6 +220,8 @@
 }
 
 :root[data-theme='dark'] .prose .astro-code {
+  --code-gutter-background: var(--color-code-gutter);
+  --shortcode-code-gutter: var(--color-code-gutter);
   background-color: var(--color-code);
   color: var(--shiki-dark);
 }
@@ -196,6 +232,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root[data-theme='auto'] .prose .astro-code {
+    --code-gutter-background: var(--color-code-gutter);
+    --shortcode-code-gutter: var(--color-code-gutter);
     background-color: var(--color-code);
     color: var(--shiki-dark);
   }
@@ -205,9 +243,47 @@
   }
 }
 
-.prose .astro-code {
+.shortcode-code {
+  --shortcode-code-gutter: color-mix(in srgb, var(--color-code) 65%, var(--color-border));
   padding: 0;
-  background: var(--color-code);
+  overflow: hidden;
+  position: relative;
+}
+
+.shortcode-code code {
+  display: block;
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: none;
+  width: 100%;
+  min-width: 0;
+  padding-block: 1rem;
+  font-size: .875rem;
+  line-height: 1.45;
+  scrollbar-color: color-mix(in srgb, var(--color-muted) 60%, transparent) transparent;
+  scrollbar-width: thin;
+  white-space: normal;
+}
+
+.shortcode-code code::-webkit-scrollbar { height: 8px; }
+.shortcode-code code::-webkit-scrollbar-thumb { border-radius: 4px; background: color-mix(in srgb, var(--color-muted) 60%, transparent); }
+.shortcode-code code::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--color-muted) 78%, transparent); }
+
+.shortcode-code .line {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  min-height: 1.45em;
+  padding-left: 4rem;
+  box-sizing: border-box;
+  font-size: .875rem;
+  line-height: 1.45;
+  white-space: pre;
+}
+
+.shortcode-code .shortcode-line-number {
+  display: none;
 }
 
 .prose .katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding-block: .35em; }
@@ -215,9 +291,25 @@
 .prose .mermaid { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: 1rem 0; }
 .prose .mermaid svg { max-width: none; height: auto; }
 
+.prose .table-scroll {
+  width: 100%;
+  max-width: 100%;
+  margin: 1.25em 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-color: color-mix(in srgb, var(--color-muted) 60%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+.prose .table-scroll::-webkit-scrollbar { height: 8px; }
+.prose .table-scroll::-webkit-scrollbar-thumb { border-radius: 4px; background: color-mix(in srgb, var(--color-muted) 60%, transparent); }
+
 .prose table {
   width: 100%;
+  max-width: 100%;
+  margin: 0;
   border-collapse: collapse;
+  table-layout: auto;
 }
 
 .prose thead {
@@ -239,6 +331,15 @@
 .prose :where(th, td) {
   padding: 0.55em 0.8em;
   border: 1px solid var(--color-border);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+@media (max-width: 48rem) {
+  .prose .responsive-table {
+    width: max(100%, calc(var(--table-columns, 1) * 8rem));
+  }
 }
 
 .prose :where(th, td)[align='left'] { text-align: left; }

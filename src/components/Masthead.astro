@@ -122,8 +122,8 @@ const position = banner?.position ?? siteConfig.banner.position;
   .masthead-separator { font-family: Consolas, Menlo, Monaco, 'lucida_console', 'Liberation_Mono', 'Courier_New', 'andale_mono', monospaceX, monospace, sans-serif; }
   .masthead-date strong { font-family: var(--mirages-font-ui); font-weight: 400; }
   .masthead-category { font-family: var(--mirages-font-ui); }
-  .about-avatar { animation: avatar-rotate 8s ease-in-out infinite alternate; }
-  @keyframes avatar-rotate { from { transform: rotate(-2deg); } to { transform: rotate(2deg); } }
+  .about-avatar { transform: rotate(0deg); transition: transform 0.5s cubic-bezier(0.33, 1, 0.68, 1); }
+  .about-avatar:hover { transform: rotate(-32deg); }
    @media (min-width: 48rem) { section { height: var(--desktop-height); } }
-  @media (prefers-reduced-motion: reduce) { .about-avatar { animation: none; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .about-avatar { transition: none; transform: none; } .about-avatar:hover { transform: none; } }
 </style>

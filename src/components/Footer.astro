@@ -1,17 +1,33 @@
 ---
 import { siteConfig } from '@/site.config';
+import lightSticker from '@/images/Written-By-Human-white.svg';
+import darkSticker from '@/images/Written-By-Human-black.svg';
 
 const containsChinese = (value: string) => /[\u3400-\u9fff]/.test(value);
+const blogDomain = new URL(siteConfig.site.url).hostname;
+const blogsClubBadge = `https://www.blogsclub.org/badge/${blogDomain}/theme`;
 ---
 
 <footer class="w-full border-t border-line bg-raised px-5 py-5 text-center font-mono text-xs leading-6 text-subtle" data-pagefind-ignore="all">
    <div class="mx-auto max-w-[73.125rem]">
+
+     <!-- 页脚标签 Start
+     <div class="footer-badges">
+       <a href="https://notbyai.fyi" target="_blank" rel="noreferrer" aria-label="Not By AI">
+         <img class="footer-badge-image" src={lightSticker.src} data-light-src={lightSticker.src} data-dark-src={darkSticker.src} width="131" height="42" alt="Not By AI" />
+       </a>
+       <a href="https://www.blogsclub.org/rank.html" target="_blank" rel="noreferrer" aria-label="博阅榜">
+         <img class="footer-badge-image blogs-club-badge" src={`${blogsClubBadge}/simple`} data-light-src={`${blogsClubBadge}/simple`} data-dark-src={`${blogsClubBadge}/simple-dark`} height="42" alt="博阅榜" loading="lazy" />
+       </a>
+     </div>
+     -->
+     
      {siteConfig.footer.links.length > 0 && <nav aria-label="页脚导航">{siteConfig.footer.links.map((item, index) => <Fragment>{index > 0 && ' · '}<a data-text-link href={item.href} target={item.external ? '_blank' : undefined} rel={item.external ? 'noreferrer' : undefined}><span class:list={{ 'footer-chinese': containsChinese(item.label) }} lang={containsChinese(item.label) ? 'zh-CN' : undefined}>{item.label}</span></a></Fragment>)}</nav>}
-     {siteConfig.footer.copyright && <p class="m-0">{siteConfig.footer.copyright}</p>}
+     <p class="m-0">Powered By Astro · Theme <a data-text-link href="https://src.luming.cool/riseforever2026/Eidolon">Eidolon</a></p>
+    {siteConfig.footer.copyright && <p class="m-0">{siteConfig.footer.copyright}</p>}
      {siteConfig.footer.note && <p class="footer-chinese m-0" lang="zh-CN">{siteConfig.footer.note}</p>}
      {siteConfig.footer.theme && <p class="m-0"><a data-text-link href={siteConfig.footer.theme.href} target={siteConfig.footer.theme.external ? '_blank' : undefined} rel={siteConfig.footer.theme.external ? 'noreferrer' : undefined}>{siteConfig.footer.theme.label}</a></p>}
-     <p class="m-0">Powered By Astro. Theme <a data-text-link href="https://src.luming.cool/riseforever2026/Eidolon">Eidolon</a></p>
-   </div>
+  </div>
 </footer>
 
 <style>
@@ -19,4 +35,33 @@ const containsChinese = (value: string) => /[\u3400-\u9fff]/.test(value);
     font-family: var(--mirages-font-sans);
   }
 
+  .footer-badges {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .footer-badges a { line-height: 0; }
+  .footer-badge-image { display: block; }
+  .blogs-club-badge { height: 42px !important; width: auto; }
 </style>
+
+<script>
+  const root = document.documentElement;
+  const systemTheme = matchMedia('(prefers-color-scheme: dark)');
+
+  const syncBadges = () => {
+    const isDark = root.dataset.theme === 'dark' || (root.dataset.theme === 'auto' && systemTheme.matches);
+    document.querySelectorAll<HTMLImageElement>('.footer-badge-image').forEach((badge) => {
+      badge.src = isDark ? badge.dataset.darkSrc ?? badge.src : badge.dataset.lightSrc ?? badge.src;
+    });
+  };
+
+  syncBadges();
+  systemTheme.addEventListener('change', syncBadges);
+  const themeObserver = new MutationObserver(syncBadges);
+  themeObserver.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+  document.addEventListener('astro:page-load', syncBadges);
+</script>
