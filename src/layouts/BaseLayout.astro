@@ -30,7 +30,7 @@ const { title, description, image, type, noindex, math, navbarOverlay = false, h
     {siteConfig.comments.provider === 'twikoo' && <link rel="stylesheet" href="https://registry.npmmirror.com/twikoo/1.7.15/files/dist/twikoo.css" data-twikoo-styles transition:persist="twikoo-styles" />}
     <SeoHead title={title} description={description} image={image} type={type} noindex={noindex} />
     {siteConfig.pjax.enabled && <ClientRouter />}
-    {math && <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.css" />}
+    {math && <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.47/dist/katex.min.css" />}
     <script is:inline set:html={appearanceScript}></script>
   </head>
   <body
