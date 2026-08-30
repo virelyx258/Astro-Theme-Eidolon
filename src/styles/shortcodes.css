@@ -274,6 +274,12 @@
   color: var(--color-text);
   font: 600 1rem/1.35 var(--reading-font-family);
 }
+.prose .shortcode-tools-title {
+  display: block;
+}
+.prose .shortcode-tools-title::before {
+  content: none;
+}
 .shortcode-tool-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

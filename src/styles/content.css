@@ -49,6 +49,22 @@
   font-size: 1.65rem;
 }
 
+.prose :where(h2, h3) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.6em;
+  align-items: center;
+}
+
+.prose :where(h2, h3)::before {
+  width: 4px;
+  height: 1.05em;
+  border-radius: 2px;
+  background: var(--color-accent);
+  transform: translateY(0.08em);
+  content: '';
+}
+
 .prose :where(p, ul, ol, blockquote, pre, table) {
   margin-block: 1.15em;
 }
@@ -88,7 +104,7 @@
   border-left: 3px solid var(--color-accent);
   color: var(--color-muted);
   font-family: var(--reading-font-family);
-  font-size: 1.08em;
+  font-size: 1em;
 }
 
 .prose :not(pre) > code {

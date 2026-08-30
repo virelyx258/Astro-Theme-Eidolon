@@ -1,0 +1,46 @@
+services:
+  webmention-init:
+    image: zerok/webmentiond:latest
+    user: "0:0"
+    entrypoint:
+      - /bin/sh
+      - -c
+    command:
+      - chown -R 1500:1500 /data
+    volumes:
+      - webmention-data:/data
+    restart: "no"
+
+  webmentiond:
+    image: zerok/webmentiond:latest
+    restart: unless-stopped
+    depends_on:
+      webmention-init:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${WEBMENTION_PORT:-8080}:8080"
+    environment:
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USER: ${MAIL_USER}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM}
+      MAIL_USE_STARTTLS: ${MAIL_USE_STARTTLS:-true}
+      MAIL_NO_TLS: ${MAIL_NO_TLS:-false}
+      SERVER_AUTH_JWT_SECRET: ${SERVER_AUTH_JWT_SECRET}
+    volumes:
+      - webmention-data:/data
+    command:
+      - --addr
+      - 0.0.0.0:8080
+      - --public-url
+      - ${WEBMENTION_PUBLIC_URL}
+      - --allowed-target-domains
+      - ${WEBMENTION_ALLOWED_TARGET_DOMAINS}
+      - --allowed-origin
+      - ${WEBMENTION_ALLOWED_ORIGIN}
+      - --auth-admin-emails
+      - ${WEBMENTION_ADMIN_EMAILS}
+
+volumes:
+  webmention-data:

@@ -1,5 +1,6 @@
 ---
 import { siteConfig } from '@/site.config';
+import { getWebmentionEndpoint } from '@/lib/webmentions';
 
 interface Props {
   title?: string;
@@ -7,6 +8,7 @@ interface Props {
   image?: string;
   type?: 'website' | 'article';
   noindex?: boolean;
+  webmention?: boolean;
 }
 
 const {
@@ -14,16 +16,21 @@ const {
   description = siteConfig.site.description,
   image,
   type = 'website',
-  noindex = false
+  noindex = false,
+  webmention = false
 } = Astro.props;
 const pageTitle = title ? `${title} - ${siteConfig.site.title}` : siteConfig.site.title;
 const canonical = new URL(Astro.url.pathname, siteConfig.site.url);
 const imageUrl = image ? new URL(image, siteConfig.site.url) : undefined;
+const webmentionEndpoint = webmention && siteConfig.webmentions.enabled && siteConfig.webmentions.endpoint.trim()
+  ? getWebmentionEndpoint(siteConfig.webmentions.endpoint, 'receive')
+  : undefined;
 ---
 
 <title>{pageTitle}</title>
 <meta name="description" content={description} />
 <link rel="canonical" href={canonical} />
+{webmentionEndpoint && <link rel="webmention" href={webmentionEndpoint} />}
 <meta property="og:type" content={type} />
 <meta property="og:title" content={pageTitle} />
 <meta property="og:description" content={description} />

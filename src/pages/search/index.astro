@@ -26,15 +26,6 @@ const query = Astro.url.searchParams.get('q')?.trim() ?? '';
   interface PagefindResult { data: () => Promise<{ url: string; meta?: { title?: string; date?: string; category?: string; categories?: string; tags?: string; cover?: string } }>; }
   interface PagefindModule { options: (options: { excerptLength: number }) => Promise<void>; search: (query: string) => Promise<{ results: PagefindResult[] }>; }
 
-  const root = document.querySelector<HTMLElement>('[data-search-page]');
-  const results = root?.querySelector<HTMLElement>('[data-search-page-results]');
-  const queryLabel = root?.querySelector<HTMLElement>('[data-search-query]');
-  const input = root?.querySelector<HTMLInputElement>('input[name="q"]');
-  const query = new URLSearchParams(window.location.search).get('q')?.trim() ?? '';
-  if (query) {
-    if (queryLabel) queryLabel.textContent = `查询词：${query}`;
-    if (input) input.value = query;
-  }
    const cardBackgrounds = ['#547a82', '#806b76', '#657657', '#876d56', '#5f718d', '#796f54'];
    const cardBackground = (url: string) => {
      let hash = 0;
@@ -42,14 +33,39 @@ const query = Astro.url.searchParams.get('q')?.trim() ?? '';
      return cardBackgrounds[hash % cardBackgrounds.length];
    };
 
+  let pagefindPromise: Promise<PagefindModule> | undefined;
+  const loadPagefind = () => {
+    pagefindPromise ??= (async () => {
+      const pagefindUrl = new URL(`${import.meta.env.BASE_URL}pagefind/pagefind.js`, document.baseURI).href;
+      const pagefind = await import(/* @vite-ignore */ pagefindUrl) as unknown as PagefindModule;
+      await pagefind.options({ excerptLength: 0 });
+      return pagefind;
+    })();
+    return pagefindPromise;
+  };
+
+  /* Client-side navigation reuses this module, so every run reads the page and query afresh. */
+  let runToken = 0;
   const run = async () => {
-    if (!query || !results) return;
+    const root = document.querySelector<HTMLElement>('[data-search-page]');
+    const results = root?.querySelector<HTMLElement>('[data-search-page-results]');
+    if (!root || !results) return;
+    const queryLabel = root.querySelector<HTMLElement>('[data-search-query]');
+    const input = root.querySelector<HTMLInputElement>('input[name="q"]');
+    const query = new URLSearchParams(window.location.search).get('q')?.trim() ?? '';
+    const token = ++runToken;
+    if (queryLabel) queryLabel.textContent = query ? `查询词：${query}` : '请输入查询词开始搜索。';
+    if (input && input.value.trim() !== query) input.value = query;
+    if (!query) {
+      results.innerHTML = '<p class="px-3 py-4 text-sm text-subtle">请输入查询词开始搜索。</p>';
+      return;
+    }
+    results.innerHTML = '<p class="px-3 py-4 text-sm text-subtle">正在搜索...</p>';
     if (import.meta.env.DEV) { results.innerHTML = '<p class="px-3 py-4 text-sm text-subtle">搜索功能需在构建并预览后使用。</p>'; return; }
     try {
-       const pagefindUrl = new URL(`${import.meta.env.BASE_URL}pagefind/pagefind.js`, document.baseURI).href;
-       const pagefind = await import(/* @vite-ignore */ pagefindUrl) as unknown as PagefindModule;
-      await pagefind.options({ excerptLength: 0 });
+      const pagefind = await loadPagefind();
       const search = await pagefind.search(query);
+      if (token !== runToken) return;
       results.replaceChildren();
       if (!search.results.length) {
         results.innerHTML = '<p class="px-3 py-4 text-sm text-subtle">没有找到相关内容。</p>';
@@ -57,6 +73,7 @@ const query = Astro.url.searchParams.get('q')?.trim() ?? '';
       }
       for (const result of search.results) {
         const data = await result.data();
+        if (token !== runToken) return;
          const article = document.createElement('article');
          article.className = 'py-[0.9375rem] md:py-[0.9375rem]';
          const link = document.createElement('a');
@@ -107,4 +124,5 @@ const query = Astro.url.searchParams.get('q')?.trim() ?? '';
     } catch { results.innerHTML = '<p class="px-3 py-4 text-sm text-subtle">搜索暂时不可用。</p>'; }
   };
   run();
+  document.addEventListener('astro:page-load', run);
 </script>

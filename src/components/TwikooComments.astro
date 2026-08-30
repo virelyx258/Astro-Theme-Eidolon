@@ -12,12 +12,12 @@ const config = comments.provider === 'twikoo' && comments.envId.trim() ? {
 } : null;
 ---
 {enabled && config && <section class="comments-shell" id="comments" aria-labelledby="comments-title">
-  <h2 id="comments-title">评论</h2>
+  <h2 class="sr-only" id="comments-title">评论</h2>
   <div id="twikoo-comments" data-twikoo-config={JSON.stringify(config)} data-twikoo-state="idle"></div>
 </section>}
 
 {enabled && !config && <section class="comments-shell comments-preview" id="comments" aria-labelledby="comments-title" data-pagefind-ignore="all">
-  <h2 id="comments-title">评论</h2>
+  <h2 class="sr-only" id="comments-title">评论</h2>
   <div class="twikoo-preview" aria-label="Twikoo 评论预览">
     <p class="twikoo-preview-status">Twikoo 尚未配置</p>
     <div class="twikoo-preview-fields" aria-hidden="true">
@@ -30,9 +30,8 @@ const config = comments.provider === 'twikoo' && comments.envId.trim() ? {
 </section>}
 
 <style is:global>
-  #comments { width: min(100%, var(--article-content-width)); margin: 4.375rem auto 0; }
-  #comments > h2 { margin: 0 0 1.5rem; padding-top: 1.375rem; border-top: 1px solid var(--color-border); color: var(--color-accent-strong); font-family: var(--reading-font-family); font-size: 1.5625rem; font-weight: 500; }
-  #twikoo-comments, #comments > #twikoo { color: var(--color-text); font-size: .94rem; }
+  #comments { width: 100%; margin: 0; font-family: var(--reading-font-family); }
+  #twikoo-comments, #comments > #twikoo { color: var(--color-text); font-family: var(--reading-font-family); font-size: .94rem; }
   #twikoo-comments .tk-comments-title, #comments > #twikoo .tk-comments-title { margin: 0 0 18px; color: var(--color-text); font-family: var(--font-serif); font-size: 1.1rem; font-weight: 600; }
   #twikoo-comments .tk-comment, #comments > #twikoo .tk-comment { padding: 1.375rem 0; border-bottom: 1px solid var(--color-border); }
   #twikoo-comments .tk-content, #twikoo-comments .tk-comment-content, #comments > #twikoo .tk-content, #comments > #twikoo .tk-comment-content { margin-top: .5rem; color: var(--color-text); line-height: 1.75; overflow-wrap: anywhere; }
@@ -94,7 +93,7 @@ const config = comments.provider === 'twikoo' && comments.envId.trim() ? {
   #comments > #twikoo .tk-submit-action-icon { color: var(--color-muted) !important; }
   #comments > #twikoo .OwO-logo { color: var(--color-muted) !important; }
   #comments > #twikoo .OwO-body { border: 1px solid var(--color-border) !important; border-radius: var(--radius-sm) !important; background: var(--color-surface) !important; color: var(--color-text) !important; box-shadow: var(--shadow-soft) !important; }
-  #comments > #twikoo .tk-send { min-width: 7rem !important; height: 2.25rem !important; border: 0 !important; border-radius: var(--radius-sm) !important; background: var(--color-accent) !important; color: var(--color-accent-contrast) !important; font-weight: 500 !important; }
+  #comments > #twikoo .tk-send { min-width: 7rem !important; height: 2.25rem !important; border: 0 !important; border-radius: var(--radius-sm) !important; background: var(--color-accent) !important; color: var(--color-accent-contrast) !important; font-family: var(--reading-font-family) !important; font-size: .875rem !important; font-weight: 500 !important; }
   #comments > #twikoo .tk-send.is-disabled { opacity: .55 !important; }
   #comments > #twikoo .tk-preview { border: 1px solid var(--color-border) !important; border-radius: var(--radius-sm) !important; background: transparent !important; color: var(--color-muted) !important; }
   #comments > #twikoo .tk-comments-container { margin-top: 3rem !important; }
@@ -169,5 +168,5 @@ const config = comments.provider === 'twikoo' && comments.envId.trim() ? {
     #comments > #twikoo .tk-replies .tk-comment > .tk-avatar { flex-basis: 1.75rem !important; width: 1.75rem !important; height: 1.75rem !important; margin-right: .5rem !important; }
     #comments > #twikoo .OwO .OwO-body { right: 0 !important; left: auto !important; width: min(18rem, 100vw - 2rem) !important; }
   }
-  @media (max-width: 37.5rem) { #comments { margin-top: 3.25rem; } #twikoo-comments .tk-avatar, #twikoo-comments .tk-comment-avatar { width: 1.875rem; height: 1.875rem; } }
+  @media (max-width: 37.5rem) { #twikoo-comments .tk-avatar, #twikoo-comments .tk-comment-avatar { width: 1.875rem; height: 1.875rem; } }
 </style>

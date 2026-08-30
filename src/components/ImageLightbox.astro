@@ -24,13 +24,80 @@
     const items = images.map((item) => ({
       ...getSize(item),
       src: item.dataset.originalSrc || item.currentSrc || item.src,
-      alt: item.alt
+      msrc: item.currentSrc || item.src,
+      alt: item.alt,
+      element: item
     }));
 
     lightboxPromise ??= import('photoswipe/lightbox').then(({ default: PhotoSwipeLightbox }) => {
       const lightbox = new PhotoSwipeLightbox({
         pswpModule: () => import('photoswipe'),
-        bgClickAction: 'close'
+        bgClickAction: 'close',
+        wheelToZoom: true,
+        allowPanToNext: true,
+        pinchToClose: true,
+        showHideAnimationType: 'zoom',
+        showAnimationDuration: 360,
+        hideAnimationDuration: 300,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        paddingFn: (viewportSize) => ({
+          top: 16,
+          right: 16,
+          bottom: viewportSize.x < 640 ? 78 : 92,
+          left: 16
+        })
+      });
+
+      lightbox.on('uiRegister', () => {
+        lightbox.pswp?.ui?.registerElement({
+          name: 'thumbnails',
+          className: 'pswp__thumbnails',
+          appendTo: 'root',
+          order: 20,
+          onInit: (element, pswp) => {
+            element.setAttribute('role', 'toolbar');
+            element.setAttribute('aria-label', '图片预览');
+
+            const buttons = Array.from({ length: pswp.getNumItems() }, (_, itemIndex) => {
+              const item = pswp.getItemData(itemIndex);
+              const button = document.createElement('button');
+              const thumbnail = document.createElement('img');
+              const label = item.alt ? `查看图片：${item.alt}` : `查看第 ${itemIndex + 1} 张图片`;
+
+              button.type = 'button';
+              button.className = 'pswp__thumbnail';
+              button.title = label;
+              button.setAttribute('aria-label', label);
+              button.addEventListener('click', () => pswp.goTo(itemIndex));
+
+              thumbnail.src = item.msrc || item.src || '';
+              thumbnail.alt = '';
+              thumbnail.draggable = false;
+              button.append(thumbnail);
+              element.append(button);
+              return button;
+            });
+
+            const updateCurrentThumbnail = () => {
+              buttons.forEach((button, itemIndex) => {
+                const isCurrent = itemIndex === pswp.currIndex;
+                button.classList.toggle('is-current', isCurrent);
+                if (isCurrent) {
+                  button.setAttribute('aria-current', 'true');
+                  element.scrollTo({
+                    behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                    left: button.offsetLeft - (element.clientWidth - button.clientWidth) / 2
+                  });
+                } else {
+                  button.removeAttribute('aria-current');
+                }
+              });
+            };
+
+            pswp.on('change', updateCurrentThumbnail);
+            updateCurrentThumbnail();
+          }
+        });
       });
       lightbox.init();
       return lightbox;
@@ -85,4 +152,83 @@
 <style is:global>
   .prose img.lightbox-image { cursor: zoom-in; }
   .prose img.lightbox-image:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
+
+  .pswp__thumbnails {
+    position: absolute;
+    z-index: 10;
+    right: 64px;
+    bottom: 12px;
+    left: 64px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    width: max-content;
+    max-width: calc(100% - 128px);
+    height: 64px;
+    margin-inline: auto;
+    padding: 6px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    touch-action: pan-x;
+  }
+
+  .pswp__thumbnails::-webkit-scrollbar { display: none; }
+
+  .pswp__thumbnail {
+    flex: 0 0 64px;
+    width: 64px;
+    height: 52px;
+    padding: 2px;
+    overflow: hidden;
+    cursor: pointer;
+    background: rgb(20 20 20 / 72%);
+    border: 2px solid transparent;
+    border-radius: 4px;
+    opacity: .58;
+    transition: border-color 160ms ease, opacity 160ms ease, transform 160ms ease;
+  }
+
+  .pswp__thumbnail:hover { opacity: .88; }
+
+  .pswp__thumbnail.is-current {
+    border-color: #fff;
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+
+  .pswp__thumbnail:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .pswp__thumbnail img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 2px;
+  }
+
+  @media (max-width: 639px) {
+    .pswp__thumbnails {
+      right: 8px;
+      bottom: 8px;
+      left: 8px;
+      gap: 6px;
+      max-width: calc(100% - 16px);
+      height: 56px;
+      padding: 5px;
+    }
+
+    .pswp__thumbnail {
+      flex-basis: 54px;
+      width: 54px;
+      height: 44px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pswp__thumbnail { transition: none; }
+  }
 </style>

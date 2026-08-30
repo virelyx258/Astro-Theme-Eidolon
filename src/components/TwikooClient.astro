@@ -39,6 +39,8 @@
     const initCurrentComments = () => {
       const root = document.querySelector('#twikoo-comments');
       if (!(root instanceof HTMLElement) || root.dataset.twikooBound) return;
+      const panel = root.closest('[data-engagement-panel]');
+      if (panel instanceof HTMLElement && panel.hidden) return;
       let config;
       try {
         config = JSON.parse(root.dataset.twikooConfig ?? '{}');
@@ -62,6 +64,7 @@
 
     initCurrentComments();
     document.addEventListener('astro:page-load', initCurrentComments);
+    document.addEventListener('engagement:tab-change', initCurrentComments);
     document.addEventListener('astro:before-swap', () => {
       document.querySelector('#twikoo-comments')?.replaceChildren();
     });

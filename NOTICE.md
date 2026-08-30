@@ -2,7 +2,7 @@
 
 Mirages 是一个基于 Astro 的静态博客主题，用于发布文章和独立页面。旧版 PHP 文件位于本项目之外，保持不变。
 
-本文档说明 Astro 主题的常用配置、Twikoo 评论和文章 Frontmatter。
+本文档说明 Astro 主题的常用配置、Twikoo 评论、WebMention 和文章 Frontmatter。
 
 ## 运行项目
 
@@ -116,6 +116,22 @@ pnpm build
 ```
 
 如果页面显示“评论暂时不可用”，依次检查云函数地址是否能从浏览器直接访问、CORS 配置、Twikoo 环境变量和 `envId` 是否包含多余路径或空格。
+
+## WebMention 配置
+
+WebMention 与 Twikoo 并行工作：Twikoo 接收本站评论，WebMention 接收其他网站对文章的回复、提及、点赞和转发。配置入口位于 `src/site.config.ts`：
+
+```ts
+webmentions: {
+  enabled: true,
+  endpoint: 'https://webmention.example.com',
+  form: true
+},
+```
+
+启用后，全站 `<head>` 会声明 `${endpoint}/receive`，文章页从 `${endpoint}/get` 读取当前 canonical URL 的已批准 WebMention。`form` 控制是否在文章底部显示手动发送表单。
+
+仓库在 `deploy/webmention/` 提供了基于 webmentiond、SQLite 和 Docker Compose 的自托管配置。服务器部署、SMTP 登录、反向代理及验证步骤见该目录的 `README.md`。
 
 ## 文章 Frontmatter
 

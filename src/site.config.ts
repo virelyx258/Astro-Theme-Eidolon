@@ -58,6 +58,12 @@ export const siteConfig: SiteConfig = {
     region: 'cn',
     lang: 'zh-CN'
   },
+  // WebMention 采用 webmentiond 自托管，请将 endpoint 换成你的接收端地址
+  webmentions: {
+    enabled: true,
+    endpoint: 'https://webmention.example.com',
+    form: true
+  },
   // 搜索服务默认使用 PageFind，无需理会
   search: { provider: 'pagefind', placeholder: '搜索文章' },
   // 这是顶栏右上角及侧栏底部的工具按钮，可自定义。下方示例已涵盖了站内功能、RSS 复制、外链跳转等场景。

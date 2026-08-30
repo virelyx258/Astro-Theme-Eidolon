@@ -6,3 +6,5 @@ dist/
 .env.*
 !.env.example
 pnpm-debug.log*
+.obsidian/
+.pnpm-store/

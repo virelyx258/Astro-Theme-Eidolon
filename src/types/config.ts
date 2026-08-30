@@ -15,6 +15,12 @@ type SearchConfig =
   | { provider: 'none' }
   | { provider: 'pagefind'; placeholder: string };
 
+export interface WebmentionConfig {
+  enabled: boolean;
+  endpoint: string;
+  form?: boolean;
+}
+
 export type ToolbarIcon = 'search' | 'rss' | 'settings' | 'link' | 'tram-front';
 
 export type ToolbarItem =
@@ -66,6 +72,7 @@ export interface SiteConfig {
     links: LinkItem[];
   };
   comments: CommentsConfig;
+  webmentions: WebmentionConfig;
   search: SearchConfig;
   pjax: {
     enabled: boolean;

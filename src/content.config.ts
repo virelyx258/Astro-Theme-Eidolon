@@ -20,6 +20,7 @@ const baseSchema = z.object({
     z.object({ enabled: z.boolean().default(true), position: z.enum(['left', 'right']).default('right') })
   ]).default(true),
   comments: z.boolean().default(false),
+  webmention: z.boolean().default(false),
   math: z.boolean().default(false),
   mermaid: z.boolean().default(false)
 });
